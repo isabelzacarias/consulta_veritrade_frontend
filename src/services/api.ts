@@ -1,4 +1,5 @@
 import type {
+  AgenteResult,
   ConsultaResult,
   Filters,
   Health,
@@ -219,6 +220,17 @@ export const api = {
     signal?: AbortSignal,
   ) =>
     request<ConsultaResult>('/consulta', undefined, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+      signal,
+    }),
+
+  agenteConsulta: (
+    payload: { pregunta: string },
+    signal?: AbortSignal,
+  ) =>
+    request<AgenteResult>('/agente/consulta', undefined, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),

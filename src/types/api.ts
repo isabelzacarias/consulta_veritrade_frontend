@@ -156,6 +156,17 @@ export interface ConsultaResult {
   sugerencias: string[] | null
 }
 
+export interface AgenteToolCall {
+  name: string
+  args: Record<string, unknown>
+}
+
+export interface AgenteResult {
+  respuesta: string
+  tool_calls: AgenteToolCall[]
+  datos_usados: unknown[]
+}
+
 export type RankingMetric = 'valor_usd' | 'volumen_kg'
 
 export type PanelTab =

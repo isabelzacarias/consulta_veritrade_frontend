@@ -7,7 +7,7 @@ export default defineConfig(({ mode }) => {
 
   // El frontend consume la API a través de /api. El proxy elimina ese prefijo
   // porque las rutas del backend FastAPI no lo incluyen (p. ej. /reportes/kpis).
-  const target = env.VITE_PROXY_TARGET || 'http://127.0.0.1:8000'
+  const target = env.VITE_PROXY_TARGET || 'http://192.168.2.69:8000'
   const proxy = {
     '/api': {
       target,

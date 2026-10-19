@@ -29,6 +29,7 @@ import { ProveedoresTab } from './tabs/ProveedoresTab'
 import { ProductosTab } from './tabs/ProductosTab'
 import { OperacionesTab } from './tabs/OperacionesTab'
 import { PreguntasTab } from './tabs/PreguntasTab'
+import { ChatWidget } from '../chatbot/ChatWidget'
 
 const TABS: Array<{ id: PanelTab; label: string; icon: LucideIcon }> = [
   { id: 'resumen', label: 'Resumen', icon: LayoutDashboard },
@@ -279,6 +280,8 @@ export function PanelPage() {
         onClose={() => setUploadOpen(false)}
         onLoaded={reloadAfterUpload}
       />
+
+      <ChatWidget />
     </div>
   )
 }
