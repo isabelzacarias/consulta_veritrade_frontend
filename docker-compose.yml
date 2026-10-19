@@ -1,0 +1,13 @@
+services:
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    # El backend FastAPI escucha en 127.0.0.1 del host, así que el contenedor
+    # comparte la red del host para poder alcanzarlo desde el proxy de Vite.
+    network_mode: host
+    volumes:
+      - .:/app
+      - /app/node_modules
+    environment:
+      - VITE_PROXY_TARGET=http://127.0.0.1:8000

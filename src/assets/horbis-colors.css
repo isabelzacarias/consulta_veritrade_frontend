@@ -1,0 +1,254 @@
+/*
+ * Paleta de colores de Horbis Group.
+ * Copiada de: frontend_gestion_TI/src/styles/tokens.css
+ *
+ * Archivo de referencia. No se importa automáticamente para no alterar
+ * el diseño actual de la interfaz.
+ */
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+    --font-heading: var(--font-sans);
+    --font-sans: 'Geist Variable', sans-serif;
+    --color-sidebar-ring: var(--sidebar-ring);
+    --color-sidebar-border: var(--sidebar-border);
+    --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+    --color-sidebar-accent: var(--sidebar-accent);
+    --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+    --color-sidebar-primary: var(--sidebar-primary);
+    --color-sidebar-foreground: var(--sidebar-foreground);
+    --color-sidebar: var(--sidebar);
+    --color-chart-5: var(--chart-5);
+    --color-chart-4: var(--chart-4);
+    --color-chart-3: var(--chart-3);
+    --color-chart-2: var(--chart-2);
+    --color-chart-1: var(--chart-1);
+    --color-ring: var(--ring);
+    --color-input: var(--input);
+    --color-border: var(--border);
+    --color-destructive: var(--destructive);
+    --color-destructive-foreground: var(--destructive-foreground);
+    --color-success: var(--success);
+    --color-success-foreground: var(--success-foreground);
+    --color-warning: var(--warning);
+    --color-warning-foreground: var(--warning-foreground);
+    --color-info: var(--info);
+    --color-info-foreground: var(--info-foreground);
+    --color-accent-foreground: var(--accent-foreground);
+    --color-accent: var(--accent);
+    --color-muted-foreground: var(--muted-foreground);
+    --color-muted: var(--muted);
+    --color-secondary-foreground: var(--secondary-foreground);
+    --color-secondary: var(--secondary);
+    --color-primary-foreground: var(--primary-foreground);
+    --color-primary: var(--primary);
+    --color-popover-foreground: var(--popover-foreground);
+    --color-popover: var(--popover);
+    --color-card-foreground: var(--card-foreground);
+    --color-card: var(--card);
+    --color-foreground: var(--foreground);
+    --color-background: var(--background);
+    --radius-sm: calc(var(--radius) * 0.6);
+    --radius-md: calc(var(--radius) * 0.8);
+    --radius-lg: var(--radius);
+    --radius-xl: calc(var(--radius) * 1.4);
+    --radius-2xl: calc(var(--radius) * 1.8);
+    --radius-3xl: calc(var(--radius) * 2.2);
+    --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+:root {
+    /* ==========================================================================
+       1. PRIMARY COLOR PALETTE (#5b2480)
+       ========================================================================== */
+    --primary-100: #efe8f5;
+    --primary-200: #decfe9;
+    --primary-300: #be9fd4;
+    --primary-400: #9c6ebb;
+    --primary-500: #7b40a3;
+    --primary-600: #5b2480; /* Base Primary */
+    --primary-700: #481c66;
+    --primary-800: #36154c;
+    --primary-900: #240e33;
+    --primary-1000: #12071a;
+
+    /* ==========================================================================
+       2. SECONDARY COLOR PALETTE (#1A0A2E)
+       ========================================================================== */
+    --secondary-100: #ede8f3;
+    --secondary-200: #d6cde4;
+    --secondary-300: #ab99c6;
+    --secondary-400: #7f64a7;
+    --secondary-500: #553787;
+    --secondary-600: #3d1f69;
+    --secondary-700: #2a124b;
+    --secondary-800: #1a0a2e; /* Base Secondary */
+    --secondary-900: #10051e;
+    --secondary-1000: #07020d;
+
+    /* ==========================================================================
+       3. ACCENT COLOR PALETTE (#06B6D4)
+       ========================================================================== */
+    --accent-100: #e0f7fa;
+    --accent-200: #b2ebf2;
+    --accent-300: #67e8f9;
+    --accent-400: #22d3ee;
+    --accent-500: #06b6d4; /* Base Accent */
+    --accent-600: #0891b2;
+    --accent-700: #0e7490;
+    --accent-800: #155e75;
+    --accent-900: #164e63;
+    --accent-1000: #082f49;
+
+    /* ==========================================================================
+       4. NEUTRALS & BASE
+       ========================================================================== */
+    --white: #f5f5f5;
+    --black: #231f20;
+
+    /* ==========================================================================
+       5. SYSTEM COLOR PALETTES
+       ========================================================================== */
+    /* Destructive / Red */
+    --destructive-100: #fef2f1;
+    --destructive-200: #fecdca;
+    --destructive-300: #f9a8a0;
+    --destructive-400: #f37970;
+    --destructive-500: #dc3d30;
+    --destructive-600: #b42318;
+    --destructive-700: #921c14;
+    --destructive-800: #701510;
+    --destructive-900: #4e0f0b;
+    --destructive-1000: #2d0806;
+
+    /* Success / Green */
+    --success-100: #ecfdf5;
+    --success-200: #b5f5dc;
+    --success-300: #6ee7b7;
+    --success-400: #34d399;
+    --success-500: #10b981;
+    --success-600: #067647;
+    --success-700: #056038;
+    --success-800: #044a2b;
+    --success-900: #03351e;
+    --success-1000: #011f12;
+
+    /* Warning / Yellow */
+    --warning-100: #fef9ec;
+    --warning-200: #fdefc5;
+    --warning-300: #fcd978;
+    --warning-400: #f9c030;
+    --warning-500: #d49b06;
+    --warning-600: #8a5a00;
+    --warning-700: #6e4800;
+    --warning-800: #533600;
+    --warning-900: #382500;
+    --warning-1000: #1e1400;
+
+    /* Info / Blue */
+    --info-100: #eff6ff;
+    --info-200: #bfdbfe;
+    --info-300: #93c5fd;
+    --info-400: #60a5fa;
+    --info-500: #3b82f6;
+    --info-600: #2563eb;
+    --info-700: #1d4ed8;
+    --info-800: #1e40af;
+    --info-900: #1e3a8a;
+    --info-1000: #172554;
+
+    /* ==========================================================================
+       6. SEMANTIC TOKENS (Light Mode)
+       ========================================================================== */
+    --background: var(--white);
+    --foreground: var(--black);
+    --card: var(--white);
+    --card-foreground: var(--black);
+    --popover: var(--white);
+    --popover-foreground: var(--black);
+    --primary: var(--primary-600);
+    --primary-foreground: var(--white);
+    --secondary: var(--secondary-100);
+    --secondary-foreground: var(--black);
+    --muted: var(--primary-100);
+    --muted-foreground: var(--primary-700);
+    /* Antes: var(--secondary-400) */
+    --accent: var(--accent-500);
+    --accent-foreground: var(--black);
+    /* Antes: var(--white) */
+    --destructive: var(--destructive-600);
+    --destructive-foreground: var(--white);
+    --success: var(--success-600);
+    --success-foreground: var(--white);
+    --warning: var(--warning-600);
+    --warning-foreground: var(--white);
+    --info: var(--info-500);
+    --info-foreground: var(--secondary-1000);
+    /* Antes: var(--white) */
+    --border: var(--primary-400);
+    /* Antes: var(--primary-200) */
+    --input: var(--primary-400);
+    /* Antes: var(--primary-200) */
+    --ring: var(--primary-600);
+    --chart-1: var(--primary-600);
+    --chart-2: var(--success-600);
+    --chart-3: var(--warning-600);
+    --chart-4: var(--destructive-600);
+    --chart-5: var(--accent-500);
+    --radius: 0.625rem;
+    --sidebar: var(--white);
+    --sidebar-foreground: var(--black);
+    --sidebar-primary: var(--primary-600);
+    --sidebar-primary-foreground: var(--white);
+    --sidebar-accent: var(--primary-100);
+    --sidebar-accent-foreground: var(--black);
+    --sidebar-border: var(--primary-200);
+    --sidebar-ring: var(--primary-600);
+}
+
+.dark {
+    /* ==========================================================================
+       SEMANTIC TOKENS (Dark Mode)
+       ========================================================================== */
+    --background: var(--secondary-1000);
+    --foreground: var(--white);
+    --card: var(--secondary-700);
+    --card-foreground: var(--white);
+    --popover: var(--secondary-700);
+    --popover-foreground: var(--white);
+    --primary: var(--primary-600);
+    --primary-foreground: var(--white);
+    --secondary: var(--secondary-800);
+    --secondary-foreground: var(--white);
+    --muted: var(--secondary-700);
+    --muted-foreground: var(--primary-200);
+    --accent: var(--accent-400);
+    --accent-foreground: var(--secondary-1000);
+    --destructive: var(--destructive-400);
+    --destructive-foreground: var(--secondary-1000);
+    --success: var(--success-400);
+    --success-foreground: var(--secondary-1000);
+    --warning: var(--warning-400);
+    --warning-foreground: var(--secondary-1000);
+    --info: var(--info-400);
+    --info-foreground: var(--secondary-1000);
+    --border: var(--secondary-400);
+    /* Antes: var(--secondary-600) */
+    --input: var(--secondary-400);
+    /* Antes: var(--secondary-600) */
+    --ring: var(--primary-300);
+    --chart-1: var(--primary-300);
+    --chart-2: var(--success-400);
+    --chart-3: var(--warning-400);
+    --chart-4: var(--destructive-400);
+    --chart-5: var(--accent-300);
+    --sidebar: var(--secondary-1000);
+    --sidebar-foreground: var(--white);
+    --sidebar-primary: var(--primary-600);
+    --sidebar-primary-foreground: var(--white);
+    --sidebar-accent: var(--secondary-700);
+    --sidebar-accent-foreground: var(--white);
+    --sidebar-border: var(--secondary-600);
+    --sidebar-ring: var(--primary-300);
+}
