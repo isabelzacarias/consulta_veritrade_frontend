@@ -18,6 +18,7 @@ import {
   formatUsdDetailed,
 } from '../../../lib/format'
 import { SectionCard } from '../../../components/ui/SectionCard'
+import { MarkdownRenderer } from '../../../components/ui/MarkdownRenderer'
 import { EmptyState, ErrorState, Skeleton } from '../../../components/ui/States'
 
 type UnknownRecord = Record<string, unknown>
@@ -249,7 +250,7 @@ function ConsultaResultView({ result }: { result: ConsultaResult }) {
       <SectionCard title="Respuesta" bodyClassName="p-5">
         <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
           <AlertTriangle className="mt-0.5 size-4 shrink-0" />
-          <p>{result.resumen}</p>
+          <MarkdownRenderer content={result.resumen} className="flex-1 text-xs" />
         </div>
         {result.sugerencias && result.sugerencias.length > 0 && (
           <div className="mt-4">
@@ -280,9 +281,10 @@ function ConsultaResultView({ result }: { result: ConsultaResult }) {
       }
       bodyClassName="p-5"
     >
-      <p className="rounded-xl border border-brand-100 bg-brand-50/50 px-4 py-3 text-sm leading-relaxed text-slate-700">
-        {result.resumen}
-      </p>
+      <MarkdownRenderer
+        content={result.resumen}
+        className="rounded-xl border border-brand-100 bg-brand-50/50 px-4 py-3 text-sm leading-relaxed"
+      />
 
       <div className="mt-4">
         <DatosView datos={result.datos} />

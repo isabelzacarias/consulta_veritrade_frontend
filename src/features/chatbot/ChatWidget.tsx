@@ -5,11 +5,23 @@ import {
   type ChangeEvent,
   type FormEvent,
   type KeyboardEvent as ReactKeyboardEvent,
+  type PointerEvent as ReactPointerEvent,
 } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
-import { Bot, MessageCircle, RefreshCw, Send, Trash2, X } from 'lucide-react'
+import {
+  Bot,
+  Maximize2,
+  MessageCircle,
+  Minimize2,
+  MoveDiagonal2,
+  RefreshCw,
+  Send,
+  Trash2,
+  X,
+} from 'lucide-react'
 import { api } from '../../services/api'
 import type { AgenteToolCall } from '../../types/api'
+import { MarkdownRenderer } from '../../components/ui/MarkdownRenderer'
 
 type ChatRole = 'assistant' | 'user'
 
@@ -45,13 +57,31 @@ function createId() {
   return `${Date.now()}-${Math.random().toString(36).slice(2)}`
 }
 
+interface WidgetSize {
+  width: number
+  height: number
+}
+
+interface ResizeStart extends WidgetSize {
+  x: number
+  y: number
+}
+
+const MIN_WIDGET_WIDTH = 320
+const MIN_WIDGET_HEIGHT = 360
+
 export function ChatWidget() {
   const [open, setOpen] = useState(false)
+  const [expanded, setExpanded] = useState(false)
+  const [size, setSize] = useState<WidgetSize | null>(null)
+  const [resizing, setResizing] = useState(false)
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [input, setInput] = useState('')
 
+  const widgetRef = useRef<HTMLElement>(null)
   const messagesRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
+  const resizeStartRef = useRef<ResizeStart | null>(null)
 
   const greeting = useQuery({
     queryKey: ['agente', 'saludo', 'consulta'],
@@ -105,7 +135,10 @@ export function ChatWidget() {
   useEffect(() => {
     if (!open) return
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setOpen(false)
+      if (event.key === 'Escape') {
+        setExpanded(false)
+        setOpen(false)
+      }
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
@@ -199,6 +232,58 @@ export function ChatWidget() {
     setMessages([])
   }
 
+  const startResize = (event: ReactPointerEvent<HTMLButtonElement>) => {
+    if (expanded) return
+    const rect = widgetRef.current?.getBoundingClientRect()
+    if (!rect) return
+
+    event.preventDefault()
+    event.currentTarget.setPointerCapture(event.pointerId)
+    resizeStartRef.current = {
+      x: event.clientX,
+      y: event.clientY,
+      width: rect.width,
+      height: rect.height,
+    }
+    setResizing(true)
+  }
+
+  const resizeWidget = (event: ReactPointerEvent<HTMLButtonElement>) => {
+    const start = resizeStartRef.current
+    if (!start) return
+
+    const maxWidth = Math.max(
+      MIN_WIDGET_WIDTH,
+      Math.min(window.innerWidth - 24, 960),
+    )
+    const maxHeight = Math.max(MIN_WIDGET_HEIGHT, window.innerHeight - 24)
+    const width = Math.min(
+      Math.max(start.width - (event.clientX - start.x), MIN_WIDGET_WIDTH),
+      maxWidth,
+    )
+    const height = Math.min(
+      Math.max(start.height - (event.clientY - start.y), MIN_WIDGET_HEIGHT),
+      maxHeight,
+    )
+
+    setSize({ width, height })
+  }
+
+  const stopResize = (event: ReactPointerEvent<HTMLButtonElement>) => {
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId)
+    }
+    resizeStartRef.current = null
+    setResizing(false)
+  }
+
+  const closeChat = () => {
+    setExpanded(false)
+    setResizing(false)
+    resizeStartRef.current = null
+    setOpen(false)
+  }
+
   return (
     <>
       {!open && (
@@ -217,12 +302,41 @@ export function ChatWidget() {
 
       {open && (
         <section
+          ref={widgetRef}
           role="dialog"
           aria-label="Asistente de consultas Veritrade"
           aria-busy={pending}
-          className="fixed inset-x-3 bottom-3 z-40 flex h-[72dvh] max-h-[calc(100dvh-1.5rem)] flex-col overflow-hidden rounded-2xl border border-brand-200 bg-white shadow-2xl shadow-brand-900/25 sm:inset-auto sm:right-6 sm:bottom-6 sm:h-[600px] sm:max-h-[calc(100dvh-3rem)] sm:w-[390px]"
+          style={
+            !expanded && size
+              ? { width: size.width, height: size.height }
+              : undefined
+          }
+          className={`${
+            expanded
+              ? 'fixed inset-y-0 right-0 z-50 flex h-full w-full flex-col overflow-hidden rounded-l-2xl border border-brand-200 bg-white shadow-2xl sm:w-[520px]'
+              : 'fixed right-3 bottom-3 z-40 flex h-[72dvh] max-h-[calc(100dvh-1.5rem)] w-[90vw] max-w-[calc(100vw-1.5rem)] flex-col overflow-hidden rounded-2xl border border-brand-200 bg-white shadow-2xl shadow-brand-900/25 sm:right-6 sm:bottom-6 sm:h-[650px] sm:max-h-[80vh] sm:w-[460px]'
+          } ${resizing ? 'transition-none' : 'transition-all duration-300'}`}
         >
-          <header className="flex items-center gap-3 bg-linear-to-r from-brand-800 via-brand-700 to-brand-600 px-4 py-3 text-white">
+          {!expanded && (
+            <button
+              type="button"
+              onPointerDown={startResize}
+              onPointerMove={resizeWidget}
+              onPointerUp={stopResize}
+              onPointerCancel={stopResize}
+              aria-label="Redimensionar chat"
+              title="Redimensionar chat"
+              className="absolute top-0 left-0 z-20 grid size-8 cursor-nwse-resize touch-none place-items-center rounded-tl-2xl text-white/60 transition hover:bg-white/10 hover:text-white"
+            >
+              <MoveDiagonal2 className="size-3.5" />
+            </button>
+          )}
+
+          <header
+            className={`flex items-center gap-3 bg-linear-to-r from-brand-800 via-brand-700 to-brand-600 py-3 text-white ${
+              expanded ? 'px-4' : 'pr-4 pl-10'
+            }`}
+          >
             <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-white/15 ring-1 ring-white/20">
               <Bot className="size-4.5" />
             </span>
@@ -242,7 +356,21 @@ export function ChatWidget() {
             </button>
             <button
               type="button"
-              onClick={() => setOpen(false)}
+              onClick={() => setExpanded((value) => !value)}
+              aria-label={expanded ? 'Restaurar chat' : 'Maximizar chat'}
+              aria-expanded={expanded}
+              title={expanded ? 'Restaurar' : 'Maximizar'}
+              className="grid size-8 place-items-center rounded-lg text-white/70 transition hover:bg-white/10 hover:text-white"
+            >
+              {expanded ? (
+                <Minimize2 className="size-4" />
+              ) : (
+                <Maximize2 className="size-4" />
+              )}
+            </button>
+            <button
+              type="button"
+              onClick={closeChat}
               aria-label="Cerrar asistente"
               className="grid size-8 place-items-center rounded-lg text-white/70 transition hover:bg-white/10 hover:text-white"
             >
@@ -353,7 +481,11 @@ function MessageBubble({ message }: { message: ChatMessage }) {
             : 'rounded-bl-md border border-brand-100 bg-white text-slate-700'
         }`}
       >
-        <p className="whitespace-pre-line">{message.content}</p>
+        {isUser ? (
+          <p className="whitespace-pre-line">{message.content}</p>
+        ) : (
+          <MarkdownRenderer content={message.content} />
+        )}
 
         {!isUser && message.tools && message.tools.length > 0 && (
           <div className="mt-2 flex flex-wrap gap-1">
