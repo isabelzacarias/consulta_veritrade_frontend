@@ -1,24 +1,31 @@
-import type { ReactNode } from 'react'
+import { Children, isValidElement, type ReactNode } from 'react'
 import ReactMarkdown, { type Components } from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 
 interface MarkdownRendererProps {
   content: string
   className?: string
+  onListItemClick?: (text: string) => void
+  listItemsDisabled?: boolean
 }
 
 function textFromChildren(children: ReactNode): string | undefined {
-  if (typeof children === 'string' || typeof children === 'number') {
-    return String(children)
-  }
-  if (Array.isArray(children)) {
-    const text = children.map(textFromChildren).filter(Boolean).join('')
-    return text || undefined
-  }
-  return undefined
+  const text = Children.toArray(children)
+    .map((child) => {
+      if (typeof child === 'string' || typeof child === 'number') {
+        return String(child)
+      }
+      if (isValidElement(child)) {
+        const props = child.props as { children?: ReactNode }
+        return textFromChildren(props.children) ?? ''
+      }
+      return ''
+    })
+    .join('')
+  return text || undefined
 }
 
-const components: Components = {
+const baseComponents: Components = {
   table({ children }) {
     return (
       <div className="my-2 w-full overflow-x-auto rounded-lg border border-slate-200">
@@ -72,7 +79,33 @@ const baseClasses =
 export function MarkdownRenderer({
   content,
   className = '',
+  onListItemClick,
+  listItemsDisabled = false,
 }: MarkdownRendererProps) {
+  const components: Components = onListItemClick
+    ? {
+        ...baseComponents,
+        li({ children }) {
+          const text = textFromChildren(children)?.trim()
+          if (!text) return <li>{children}</li>
+
+          return (
+            <li className="my-0.5 list-none">
+              <button
+                type="button"
+                onClick={() => onListItemClick(text)}
+                disabled={listItemsDisabled}
+                title="Seleccionar esta opción"
+                className="text-left font-medium text-brand-700 underline decoration-brand-300 underline-offset-2 transition hover:text-brand-900 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {children}
+              </button>
+            </li>
+          )
+        },
+      }
+    : baseComponents
+
   return (
     <div className={`${baseClasses} ${className}`}>
       <ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>

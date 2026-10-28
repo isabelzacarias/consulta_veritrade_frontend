@@ -13,10 +13,12 @@ export interface AgenteResult {
   respuesta: string
   tool_calls: AgenteToolCall[]
   datos_usados: unknown[]
+  sugerencias?: string[]
   filtros_sugeridos?: FiltrosSugeridos | null
 }
 
 export type ChatRole = 'assistant' | 'user'
+export type FiltrosEstado = 'pendiente' | 'aplicado' | 'descartado'
 
 export interface ChatMessage {
   id: string
@@ -24,6 +26,9 @@ export interface ChatMessage {
   content: string
   time: string
   tools?: AgenteToolCall[]
+  suggestions?: string[]
+  filtrosSugeridos?: FiltrosSugeridos
+  filtrosEstado?: FiltrosEstado
 }
 
 export interface ChatHistoryMessage {

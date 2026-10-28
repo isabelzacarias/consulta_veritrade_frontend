@@ -11,6 +11,7 @@ import { useMutation, useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import {
   Bot,
+  Check,
   Maximize2,
   MessageCircle,
   Minimize2,
@@ -22,7 +23,12 @@ import {
 } from 'lucide-react'
 import { api } from '@/services/api'
 import { buildViewUrl } from '@/lib/viewRoutes'
-import type { ChatHistoryMessage, ChatMessage } from '@/types/chatbot'
+import type {
+  AgenteResult,
+  ChatHistoryMessage,
+  ChatMessage,
+  FiltrosSugeridos,
+} from '@/types/chatbot'
 import { MarkdownRenderer } from '@/components/ui/MarkdownRenderer'
 import { useChatHistory } from './useChatHistory'
 
@@ -42,6 +48,11 @@ const TOOL_LABELS: Record<string, string> = {
   compras_catalogo: 'Catálogo de compras',
   pedir_aclaracion: 'Aclaración',
   capacidades: 'Capacidades',
+  resumen_kpis: 'KPIs',
+  ranking: 'Ranking',
+  serie_mensual: 'Serie mensual',
+  buscar_operaciones: 'Búsqueda',
+  catalogo: 'Catálogo',
 }
 
 const timeFormatter = new Intl.DateTimeFormat('es-MX', {
@@ -58,6 +69,47 @@ function createId() {
     return crypto.randomUUID()
   }
   return `${Date.now()}-${Math.random().toString(36).slice(2)}`
+}
+
+function hasChoiceList(content: string): boolean {
+  const hasList = /(?:^|\n)\s*(?:[-*+]|\d+\.)\s+\S/.test(content)
+  if (!hasList) return false
+
+  const hasQuestion = /¿[^?\n]*\?/.test(content)
+  const mentionsChoice =
+    /\b(?:opci[oó]n|opciones|elige|selecciona|escoge|cu[aá]l)\b/i.test(
+      content,
+    )
+  return hasQuestion || mentionsChoice
+}
+
+function extractSuggestions(data: AgenteResult): string[] {
+  const suggestions = new Set<string>()
+
+  const addOptions = (value: unknown) => {
+    if (!Array.isArray(value)) return
+    for (const option of value) {
+      if (typeof option !== 'string') continue
+      const text = option.trim()
+      if (text) suggestions.add(text)
+    }
+  }
+
+  addOptions(data.sugerencias)
+
+  for (const entry of data.datos_usados) {
+    if (!entry || typeof entry !== 'object') continue
+    const result = (entry as { resultado?: unknown }).resultado
+    if (!result || typeof result !== 'object') continue
+    addOptions((result as { opciones?: unknown }).opciones)
+  }
+
+  for (const call of data.tool_calls) {
+    if (call.name !== 'pedir_aclaracion') continue
+    addOptions(call.args.opciones)
+  }
+
+  return [...suggestions].slice(0, 10)
 }
 
 interface WidgetSize {
@@ -184,6 +236,7 @@ export function ChatWidget() {
 
     mutation.mutate({ pregunta: value, historial }, {
       onSuccess: (data) => {
+        const filtrosSugeridos = data.filtros_sugeridos ?? undefined
         setMessages((current) => [
           ...current,
           {
@@ -194,18 +247,11 @@ export function ChatWidget() {
               'No obtuve una respuesta del asistente. Intenta reformular tu consulta.',
             time: formatTime(new Date()),
             tools: data.tool_calls,
+            suggestions: extractSuggestions(data),
+            filtrosSugeridos,
+            filtrosEstado: filtrosSugeridos ? 'pendiente' : undefined,
           },
         ])
-
-        const sugeridos = data.filtros_sugeridos
-        if (sugeridos) {
-          const url = buildViewUrl(
-            sugeridos.modulo,
-            sugeridos.filtros,
-            sugeridos.tab,
-          )
-          if (url) navigate(url)
-        }
       },
       onError: (error) => {
         const detail =
@@ -251,6 +297,37 @@ export function ChatWidget() {
     setInput('')
     if (inputRef.current) inputRef.current.style.height = 'auto'
     setMessages([])
+  }
+
+  const applySuggestedFilters = (
+    messageId: string,
+    sugeridos: FiltrosSugeridos,
+  ) => {
+    const url = buildViewUrl(
+      sugeridos.modulo,
+      sugeridos.filtros,
+      sugeridos.tab,
+    )
+    if (!url) return
+
+    setMessages((current) =>
+      current.map((message) =>
+        message.id === messageId
+          ? { ...message, filtrosEstado: 'aplicado' }
+          : message,
+      ),
+    )
+    navigate(url)
+  }
+
+  const discardSuggestedFilters = (messageId: string) => {
+    setMessages((current) =>
+      current.map((message) =>
+        message.id === messageId
+          ? { ...message, filtrosEstado: 'descartado' }
+          : message,
+      ),
+    )
   }
 
   const startResize = (event: ReactPointerEvent<HTMLButtonElement>) => {
@@ -362,7 +439,7 @@ export function ChatWidget() {
               <Bot className="size-4.5" />
             </span>
             <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-semibold">Asistente Veritrade</p>
+              <p className="truncate text-sm font-semibold">Asistente Horbis</p>
               <p className="text-[10px] text-white/65">Consultas sobre tus datos</p>
             </div>
             <button
@@ -423,10 +500,23 @@ export function ChatWidget() {
                 </button>
               </div>
             )}
-            {greetingMessage && <MessageBubble message={greetingMessage} />}
+            {greetingMessage && (
+              <MessageBubble
+                message={greetingMessage}
+                onSuggestionClick={sendMessage}
+                suggestionsDisabled={pending}
+              />
+            )}
 
             {messages.map((message) => (
-              <MessageBubble key={message.id} message={message} />
+              <MessageBubble
+                key={message.id}
+                message={message}
+                onSuggestionClick={sendMessage}
+                suggestionsDisabled={pending}
+                onApplyFilters={applySuggestedFilters}
+                onDiscardFilters={discardSuggestedFilters}
+              />
             ))}
 
             {messages.length === 0 && suggestions.length > 0 && (
@@ -485,8 +575,27 @@ export function ChatWidget() {
   )
 }
 
-function MessageBubble({ message }: { message: ChatMessage }) {
+interface MessageBubbleProps {
+  message: ChatMessage
+  onSuggestionClick?: (suggestion: string) => void
+  suggestionsDisabled?: boolean
+  onApplyFilters?: (messageId: string, sugeridos: FiltrosSugeridos) => void
+  onDiscardFilters?: (messageId: string) => void
+}
+
+function MessageBubble({
+  message,
+  onSuggestionClick,
+  suggestionsDisabled = false,
+  onApplyFilters,
+  onDiscardFilters,
+}: MessageBubbleProps) {
   const isUser = message.role === 'user'
+  const visibleTools = message.tools?.filter(
+    (tool) => tool.name !== 'pedir_aclaracion',
+  )
+  const listOptionsClickable =
+    !isUser && Boolean(onSuggestionClick) && hasChoiceList(message.content)
 
   return (
     <div className={`flex items-end gap-2 ${isUser ? 'justify-end' : 'justify-start'}`}>
@@ -505,12 +614,18 @@ function MessageBubble({ message }: { message: ChatMessage }) {
         {isUser ? (
           <p className="whitespace-pre-line">{message.content}</p>
         ) : (
-          <MarkdownRenderer content={message.content} />
+          <MarkdownRenderer
+            content={message.content}
+            onListItemClick={
+              listOptionsClickable ? onSuggestionClick : undefined
+            }
+            listItemsDisabled={suggestionsDisabled}
+          />
         )}
 
-        {!isUser && message.tools && message.tools.length > 0 && (
+        {!isUser && visibleTools && visibleTools.length > 0 && (
           <div className="mt-2 flex flex-wrap gap-1">
-            {message.tools.map((tool, index) => (
+            {visibleTools.map((tool, index) => (
               <span
                 key={`${tool.name}-${index}`}
                 className="rounded-full bg-brand-50 px-1.5 py-0.5 text-[8px] font-medium text-brand-600"
@@ -522,6 +637,47 @@ function MessageBubble({ message }: { message: ChatMessage }) {
           </div>
         )}
 
+        {!isUser &&
+          message.suggestions &&
+          message.suggestions.length > 0 && (
+            <div className="mt-2.5">
+              <p className="text-[9px] font-semibold uppercase tracking-wide text-brand-500">
+                Sugerencias
+              </p>
+              <div className="mt-1.5 flex flex-col gap-1.5">
+                {message.suggestions.map((suggestion, index) => (
+                  <button
+                    key={`${suggestion}-${index}`}
+                    type="button"
+                    onClick={() => onSuggestionClick?.(suggestion)}
+                    disabled={suggestionsDisabled}
+                    title="Buscar sobre esta opción"
+                    className="group flex w-full items-start gap-2 rounded-lg border border-brand-100 bg-white px-2.5 py-1.5 text-left text-[11px] leading-snug text-brand-700 transition hover:border-brand-300 hover:bg-brand-50 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <span className="mt-px grid size-4 shrink-0 place-items-center rounded-full bg-brand-50 text-[9px] font-semibold text-brand-600 group-hover:bg-brand-100">
+                      {index + 1}
+                    </span>
+                    <span className="min-w-0 flex-1">{suggestion}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+        {!isUser &&
+          message.filtrosSugeridos &&
+          onApplyFilters &&
+          onDiscardFilters && (
+            <FilterSuggestionCard
+              messageId={message.id}
+              sugeridos={message.filtrosSugeridos}
+              estado={message.filtrosEstado ?? 'pendiente'}
+              disabled={suggestionsDisabled}
+              onApply={onApplyFilters}
+              onDiscard={onDiscardFilters}
+            />
+          )}
+
         <p
           className={`mt-1 text-[9px] ${
             isUser ? 'text-white/60' : 'text-slate-400'
@@ -529,6 +685,100 @@ function MessageBubble({ message }: { message: ChatMessage }) {
         >
           {message.time}
         </p>
+      </div>
+    </div>
+  )
+}
+
+const VIEW_LABELS: Record<string, string> = {
+  resumen: 'Resumen',
+  importadores: 'Importadores',
+  proveedores: 'Proveedores',
+  productos: 'Productos y costos',
+  comparativo: 'Comparativo',
+  matriz: 'Matriz',
+  operaciones: 'Operaciones',
+  preguntas: 'Preguntas',
+  graficas: 'Gráficas',
+  precios: 'Precios',
+  tabla: 'Tabla',
+}
+
+function filterPrompt(sugeridos: FiltrosSugeridos): string {
+  if (sugeridos.tab === 'graficas') {
+    return '¿Quieres ver estos datos reflejados en las gráficas?'
+  }
+  if (sugeridos.tab === 'precios') {
+    return '¿Quieres ver este precio en la vista de Precios?'
+  }
+  if (sugeridos.tab === 'tabla') {
+    return '¿Quieres ver estas operaciones en la tabla?'
+  }
+  if (sugeridos.tab === 'comparativo') {
+    return '¿Quieres abrir el Comparativo con estos datos?'
+  }
+  const label =
+    (sugeridos.tab ? VIEW_LABELS[sugeridos.tab] : undefined) ??
+    (sugeridos.modulo === 'compras' ? 'Compras' : 'Importaciones')
+  return `¿Quieres ver estos datos en la vista de ${label}?`
+}
+
+interface FilterSuggestionCardProps {
+  messageId: string
+  sugeridos: FiltrosSugeridos
+  estado: 'pendiente' | 'aplicado' | 'descartado'
+  disabled: boolean
+  onApply: (messageId: string, sugeridos: FiltrosSugeridos) => void
+  onDiscard: (messageId: string) => void
+}
+
+function FilterSuggestionCard({
+  messageId,
+  sugeridos,
+  estado,
+  disabled,
+  onApply,
+  onDiscard,
+}: FilterSuggestionCardProps) {
+  if (estado === 'aplicado') {
+    return (
+      <p className="mt-2 flex items-center gap-1.5 text-[11px] font-medium text-emerald-700">
+        <Check className="size-3.5" />
+        Filtros aplicados.
+      </p>
+    )
+  }
+
+  if (estado === 'descartado') {
+    return (
+      <p className="mt-2 text-[11px] text-slate-400">
+        Sugerencia descartada.
+      </p>
+    )
+  }
+
+  return (
+    <div className="mt-2 rounded-xl border border-brand-200 bg-brand-50/60 p-2.5">
+      <p className="text-[11px] leading-relaxed text-slate-600">
+        {filterPrompt(sugeridos)}
+      </p>
+      <div className="mt-2 flex flex-wrap gap-1.5">
+        <button
+          type="button"
+          disabled={disabled}
+          onClick={() => onApply(messageId, sugeridos)}
+          className="rounded-lg bg-brand-700 px-2.5 py-1 text-[10px] font-medium text-white transition hover:bg-brand-800 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          Sí, aplicar
+        </button>
+        <button
+          type="button"
+          disabled={disabled}
+          onClick={() => onDiscard(messageId)}
+          className="rounded-lg border border-brand-200 bg-white px-2.5 py-1 text-[10px] font-medium text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          No, gracias
+        </button>
       </div>
     </div>
   )
