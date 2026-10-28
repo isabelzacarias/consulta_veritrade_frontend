@@ -28,7 +28,7 @@ import type {
 import type {
   CompraArticulo,
   CompraCategoria,
-  CompraComparativoOrder,
+  ComprasComparativoOrder,
   CompraComparativoResult,
   CompraMensual,
   CompraPrecioMensual,
@@ -338,7 +338,7 @@ export const api = {
       mes?: string
       comparar?: string
       metrica?: ComprasComparativoMetric
-      orderBy?: CompraComparativoOrder
+      orderBy?: ComprasComparativoOrder
       top?: number
       minRegistros?: number
     } = {},

@@ -7,7 +7,9 @@ import {
 } from '@tanstack/react-query'
 import {
   BarChart3,
+  ChartLine,
   Database,
+  GitCompareArrows,
   Table2,
   Upload,
   type LucideIcon,
@@ -20,12 +22,16 @@ import { ComprasFilters as ComprasFilterBar } from './ComprasFilters'
 import { ComprasKpis } from './ComprasKpis'
 import { ComprasCharts } from './ComprasCharts'
 import { ComprasTable } from './ComprasTable'
+import { ComprasComparativoTab } from './ComprasComparativoTab'
+import { PreciosTab } from './PreciosTab'
 import { ImportComprasDialog } from './ImportComprasDialog'
 
-type ComprasTab = 'graficas' | 'tabla'
+type ComprasTab = 'graficas' | 'precios' | 'comparativo' | 'tabla'
 
 const TABS: Array<{ id: ComprasTab; label: string; icon: LucideIcon }> = [
   { id: 'graficas', label: 'Gráficas', icon: BarChart3 },
+  { id: 'precios', label: 'Precios', icon: ChartLine },
+  { id: 'comparativo', label: 'Comparativo', icon: GitCompareArrows },
   { id: 'tabla', label: 'Tabla', icon: Table2 },
 ]
 
@@ -223,6 +229,14 @@ export function ComprasPage() {
             proveedores={proveedores}
             kpis={kpis.data}
           />
+        )}
+
+        {activeTab === 'precios' && (
+          <PreciosTab filters={filters} anios={meta.data?.anios ?? []} />
+        )}
+
+        {activeTab === 'comparativo' && (
+          <ComprasComparativoTab filters={filters} />
         )}
 
         {activeTab === 'tabla' && (

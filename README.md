@@ -31,13 +31,18 @@ El header compartido (`src/components/AppHeader.tsx`) navega entre **Importacion
   texto libre.
 
 `src/features/compras/ComprasPage.tsx` es el módulo independiente de compras por
-artículo (HORBIS INNOTRADE). Filtros y KPIs son comunes; el detalle se separa en dos
-pestañas:
+artículo (HORBIS INNOTRADE). Filtros y KPIs son comunes; el detalle se separa en
+cuatro pestañas:
 
 - **KPIs:** importe total MXN, compras, proveedores, participación internacional,
   compras nacionales/internacionales, categorías y fracciones válidas.
 - **Gráficas:** evolución mensual, nacional vs internacional, top categorías y top
   proveedores.
+- **Precios:** precio promedio anual por producto ponderado por cantidad, con tabla
+  top 100 y evolución mensual del producto seleccionado.
+- **Comparativo:** comparación entre dos meses calendario por descripción, categoría
+  o proveedor; métrica de importe, cantidad o precio promedio; diferencia absoluta,
+  variación y participación.
 - **Tabla:** artículos paginados con fecha, categoría, fracción, cantidad, importe,
   proveedor y ámbito; exportación XLSX/CSV.
 - **Filtros:** fecha, categoría, ámbito, proveedor, fracción y búsqueda.
@@ -115,7 +120,7 @@ src/
 │   └── ui/               # SectionCard, RankingTable, BarList, Segmented, estados
 ├── features/panel/       # layout, filtros, KPIs, gráficas, modales
 │   └── tabs/             # Resumen, Importadores, Proveedores, Productos, Comparativo, Matriz, Operaciones, Preguntas
-├── features/compras/     # página, filtros, KPIs, gráficas, tabla e importación CSV
+├── features/compras/     # página, filtros, KPIs, gráficas, precios, comparativo, tabla e importación CSV
 ├── lib/format.ts         # formato de moneda MXN/USD, fechas y porcentajes
 ├── services/api.ts       # cliente tipado de la API
 ├── types/                # tipos del contrato del backend (importaciones y compras)
@@ -142,6 +147,8 @@ src/
 | `GET /preguntas` y `POST /consulta` | Preguntas frecuentes y respuestas |
 | `GET /exportar/importaciones` | Descarga XLSX/CSV |
 | `GET /compras/{kpis,mensual,categorias,proveedores,meta,articulos}` | Dashboard, gráficas y tabla de compras |
+| `GET /compras/precios` y `/precios/mensual` | Precio promedio ponderado anual y serie mensual |
+| `GET /compras/comparativo` | Comparativo mensual de compras |
 | `GET /compras/exportar` | Descarga de compras XLSX/CSV |
 | `POST /compras/importar` | Carga del CSV de compras |
 | `POST /procesamiento/upload-lote` y `/procesamiento/cargar` | Carga de uno o varios Excel |

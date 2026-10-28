@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { ChartLine, Info } from 'lucide-react'
 import {
@@ -42,46 +42,45 @@ const tooltipStyle = {
 }
 
 export function PreciosTab({ filters, anios }: PreciosTabProps) {
-  const [anio, setAnio] = useState<number | undefined>(anios[0])
+  const [anio, setAnio] = useState<number | undefined>()
   const [descripcion, setDescripcion] = useState<string | undefined>()
 
-  const precios = useQuery({
-    queryKey: ['compras', 'precios', filters, anio],
-    queryFn: ({ signal }) =>
-      api.comprasPrecios(filters, { anio, top: 100 }, signal),
-    placeholderData: keepPreviousData,
-  })
+  const anioEfectivo =
+    anio !== undefined && anios.includes(anio) ? anio : anios[0]
 
-  const mensual = useQuery({
-    queryKey: ['compras', 'precios-mensual', filters, descripcion, anio],
+  const precios = useQuery({
+    queryKey: ['compras', 'precios', filters, anioEfectivo],
     queryFn: ({ signal }) =>
-      api.comprasPrecioMensual(
-        filters,
-        { descripcion: descripcion ?? '', anio },
-        signal,
-      ),
-    enabled: Boolean(descripcion),
+      api.comprasPrecios(filters, { anio: anioEfectivo, top: 100 }, signal),
     placeholderData: keepPreviousData,
   })
 
   const productos = precios.data ?? []
-  const producto = productos.find((item) => item.descripcion === descripcion)
+  const descripcionEfectiva =
+    descripcion && productos.some((item) => item.descripcion === descripcion)
+      ? descripcion
+      : productos[0]?.descripcion
+  const producto = productos.find(
+    (item) => item.descripcion === descripcionEfectiva,
+  )
 
-  useEffect(() => {
-    if (anios.length > 0 && (anio === undefined || !anios.includes(anio))) {
-      setAnio(anios[0])
-    }
-  }, [anios, anio])
-
-  useEffect(() => {
-    if (productos.length === 0) {
-      if (descripcion) setDescripcion(undefined)
-      return
-    }
-    if (!descripcion || !productos.some((item) => item.descripcion === descripcion)) {
-      setDescripcion(productos[0].descripcion)
-    }
-  }, [productos, descripcion])
+  const mensual = useQuery({
+    queryKey: [
+      'compras',
+      'precios-mensual',
+      filters,
+      descripcionEfectiva,
+      anioEfectivo,
+    ],
+    queryFn: ({ signal }) =>
+      api.comprasPrecioMensual(
+        filters,
+        { descripcion: descripcionEfectiva ?? '', anio: anioEfectivo },
+        signal,
+      ),
+    enabled: Boolean(descripcionEfectiva),
+    placeholderData: keepPreviousData,
+  })
 
   const serie = mensual.data ?? []
   const precioAnual = producto?.precio_promedio_mxn ?? null
@@ -98,7 +97,7 @@ export function PreciosTab({ filters, anios }: PreciosTabProps) {
               Año
               <select
                 className={selectClass}
-                value={anio ?? ''}
+                value={anioEfectivo ?? ''}
                 onChange={(event) => setAnio(Number(event.target.value))}
               >
                 {anios.map((item) => (
@@ -145,7 +144,7 @@ export function PreciosTab({ filters, anios }: PreciosTabProps) {
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {productos.map((item) => {
-                    const activo = item.descripcion === descripcion
+                    const activo = item.descripcion === descripcionEfectiva
                     return (
                       <tr
                         key={item.descripcion}
