@@ -2,6 +2,7 @@ import { Search, SlidersHorizontal, X } from 'lucide-react'
 import type { FormEvent } from 'react'
 import type { ComprasFilters as Filters, ComprasMeta } from '@/types/compras'
 import { SectionCard } from '@/components/ui/SectionCard'
+import { Combobox2 } from '@/components/ui/Combobox2'
 
 interface ComprasFiltersProps {
   draft: Filters
@@ -90,40 +91,40 @@ export function ComprasFilters({
             <label htmlFor="compras-categoria" className={labelClass}>
               Categoría
             </label>
-            <select
+            <Combobox2
               id="compras-categoria"
               className={inputClass}
               value={draft.categoria ?? ''}
-              onChange={(event) => set('categoria', event.target.value)}
-            >
-              <option value="">Todas las categorías</option>
-              {(meta?.categorias ?? []).map((categoria) => (
-                <option key={categoria} value={categoria}>
-                  {categoria}
-                </option>
-              ))}
-            </select>
+              onChange={(value) => set('categoria', value)}
+              options={[
+                { value: '', label: 'Todas las categorías' },
+                ...(meta?.categorias ?? []).map((categoria) => ({
+                  value: categoria,
+                  label: categoria,
+                })),
+              ]}
+              clearable
+            />
           </div>
 
           <div className="xl:col-span-2">
             <label htmlFor="compras-ambito" className={labelClass}>
               Ámbito
             </label>
-            <select
+            <Combobox2
               id="compras-ambito"
               className={inputClass}
               value={draft.ambito ?? ''}
-              onChange={(event) =>
-                set(
-                  'ambito',
-                  (event.target.value || undefined) as Filters['ambito'],
-                )
+              onChange={(value) =>
+                set('ambito', (value || undefined) as Filters['ambito'])
               }
-            >
-              <option value="">Nacional e internacional</option>
-              <option value="nacional">Nacional</option>
-              <option value="internacional">Internacional</option>
-            </select>
+              options={[
+                { value: '', label: 'Nacional e internacional' },
+                { value: 'nacional', label: 'Nacional' },
+                { value: 'internacional', label: 'Internacional' },
+              ]}
+              clearable
+            />
           </div>
 
           <div className="sm:col-span-2 xl:col-span-4">
@@ -144,42 +145,52 @@ export function ComprasFilters({
             <label htmlFor="compras-fraccion" className={labelClass}>
               Fracción arancelaria
             </label>
-            <select
+            <Combobox2
               id="compras-fraccion"
               className={inputClass}
               value={draft.fraccion ?? ''}
+              onChange={(value) => set('fraccion', value)}
               disabled={sinFracciones}
               title={
                 sinFracciones
                   ? 'Se habilitará cuando se capturen fracciones válidas en el CSV.'
                   : undefined
               }
-              onChange={(event) => set('fraccion', event.target.value)}
-            >
-              <option value="">
-                {sinFracciones
-                  ? 'Sin fracciones capturadas'
-                  : 'Todas las fracciones'}
-              </option>
-              {(meta?.fracciones ?? []).map((fraccion) => (
-                <option key={fraccion} value={fraccion}>
-                  {fraccion}
-                </option>
-              ))}
-            </select>
+              options={[
+                {
+                  value: '',
+                  label: sinFracciones
+                    ? 'Sin fracciones capturadas'
+                    : 'Todas las fracciones',
+                },
+                ...(meta?.fracciones ?? []).map((fraccion) => ({
+                  value: fraccion,
+                  label: fraccion,
+                })),
+              ]}
+              clearable
+            />
           </div>
 
           <div className="sm:col-span-2 xl:col-span-4">
-            <label htmlFor="compras-q" className={labelClass}>
+            <label htmlFor="compras-descripcion" className={labelClass}>
               Buscar artículo
             </label>
-            <input
-              id="compras-q"
-              type="search"
+            <Combobox2
+              id="compras-descripcion"
               className={inputClass}
-              placeholder="Descripción, proveedor o fracción…"
-              value={draft.q ?? ''}
-              onChange={(event) => set('q', event.target.value)}
+              value={draft.descripcion ?? ''}
+              onChange={(value) => set('descripcion', value)}
+              options={[
+                { value: '', label: 'Todos los artículos' },
+                ...(meta?.descripciones ?? []).map((descripcion) => ({
+                  value: descripcion,
+                  label: descripcion,
+                })),
+              ]}
+              placeholder="Seleccionar artículo..."
+              emptyMessage="No hay artículos registrados"
+              clearable
             />
           </div>
 

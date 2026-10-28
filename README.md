@@ -46,7 +46,7 @@ cuatro pestañas:
   variación y participación.
 - **Tabla:** artículos paginados con fecha, categoría, fracción, cantidad, importe,
   proveedor y ámbito; exportación XLSX/CSV.
-- **Filtros:** fecha, categoría, ámbito, proveedor, fracción y búsqueda.
+- **Filtros:** fecha, categoría, ámbito, proveedor, artículo exacto, fracción y búsqueda.
 - **Importación CSV:** carga desde la interfaz (`POST /compras/importar`) con modo
   reemplazar/agregar.
 
@@ -117,7 +117,7 @@ npm run lint     # ESLint
 src/
 ├── components/
 │   ├── layout/           # AppHeader y elementos de estructura
-│   └── ui/               # SectionCard, RankingTable, BarList, Segmented, estados
+│   └── ui/               # SectionCard, RankingTable, BarList, Segmented, Combobox2, estados
 ├── features/
 │   ├── importaciones/
 │   │   ├── ImportacionesPage.tsx

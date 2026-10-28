@@ -29,6 +29,7 @@ export interface ComprasFilters {
   fecha_hasta?: string
   categoria?: string
   proveedor?: string
+  descripcion?: string
   ambito?: AmbitoCompra
   fraccion?: string
   q?: string
@@ -160,6 +161,7 @@ export interface CompraArticulo {
 export interface ComprasMeta {
   categorias: string[]
   proveedores: string[]
+  descripciones: string[]
   fracciones: string[]
   anios: number[]
   ambitos: string[]

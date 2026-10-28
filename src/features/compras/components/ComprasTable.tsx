@@ -20,6 +20,7 @@ import {
   formatNumber,
 } from '@/lib/format'
 import { SectionCard } from '@/components/ui/SectionCard'
+import { Combobox2 } from '@/components/ui/Combobox2'
 import { EmptyState, ErrorState, Skeleton } from '@/components/ui/States'
 
 interface ComprasTableProps {
@@ -101,23 +102,21 @@ export function ComprasTable({
           <label htmlFor="compras-orden" className="sr-only">
             Ordenar compras
           </label>
-          <select
+          <Combobox2
             id="compras-orden"
             value={ordenActual}
-            onChange={(event) => {
-              const opcion = ORDER_OPTIONS.find(
-                (item) => item.value === event.target.value,
-              )
+            onChange={(value) => {
+              const opcion = ORDER_OPTIONS.find((item) => item.value === value)
               if (opcion) onOrderChange(opcion.orderBy, opcion.desc)
             }}
+            options={ORDER_OPTIONS.map((option) => ({
+              value: option.value,
+              label: option.label,
+            }))}
+            wrapperClassName="inline-block w-auto"
             className="h-8 rounded-lg border border-slate-200 bg-white px-2 text-xs text-slate-700 outline-none focus:border-brand-500"
-          >
-            {ORDER_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
+            ariaLabel="Ordenar compras"
+          />
           <a
             href={api.comprasExportUrl('xlsx', filters, orderBy, desc)}
             className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-600 transition hover:bg-slate-50"
@@ -141,18 +140,18 @@ export function ComprasTable({
         </p>
         <div className="flex items-center gap-2 text-xs text-slate-500">
           <label htmlFor="compras-page-size">Filas por página</label>
-          <select
+          <Combobox2
             id="compras-page-size"
-            value={pageSize}
-            onChange={(event) => onPageSizeChange(Number(event.target.value))}
+            value={String(pageSize)}
+            onChange={(value) => onPageSizeChange(Number(value))}
+            options={[10, 25, 50, 100].map((size) => ({
+              value: String(size),
+              label: String(size),
+            }))}
+            wrapperClassName="inline-block w-auto"
             className="h-8 rounded-lg border border-slate-200 bg-white px-2 text-xs text-slate-700 outline-none focus:border-brand-500"
-          >
-            {[10, 25, 50, 100].map((size) => (
-              <option key={size} value={size}>
-                {size}
-              </option>
-            ))}
-          </select>
+            ariaLabel="Filas por página"
+          />
         </div>
       </div>
 

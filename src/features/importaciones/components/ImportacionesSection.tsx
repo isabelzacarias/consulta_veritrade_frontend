@@ -13,6 +13,7 @@ import type { Page, QuerySlice } from '@/types/common'
 import { api } from '@/services/api'
 import { formatDate, formatKg, formatNumber, formatUsd } from '@/lib/format'
 import { SectionCard } from '@/components/ui/SectionCard'
+import { Combobox2 } from '@/components/ui/Combobox2'
 import { EmptyState, ErrorState, Skeleton } from '@/components/ui/States'
 
 interface ImportacionesSectionProps {
@@ -107,18 +108,18 @@ export function ImportacionesSection({
 
         <div className="flex items-center gap-2 text-xs text-slate-500">
           <label htmlFor="page-size">Filas por página</label>
-          <select
+          <Combobox2
             id="page-size"
-            value={pageSize}
-            onChange={(event) => onPageSizeChange(Number(event.target.value))}
+            value={String(pageSize)}
+            onChange={(value) => onPageSizeChange(Number(value))}
+            options={[10, 25, 50, 100].map((size) => ({
+              value: String(size),
+              label: String(size),
+            }))}
+            wrapperClassName="inline-block w-auto"
             className="h-8 rounded-lg border border-slate-200 bg-white px-2 text-xs text-slate-700 outline-none focus:border-brand-500"
-          >
-            {[10, 25, 50, 100].map((size) => (
-              <option key={size} value={size}>
-                {size}
-              </option>
-            ))}
-          </select>
+            ariaLabel="Filas por página"
+          />
         </div>
       </div>
 

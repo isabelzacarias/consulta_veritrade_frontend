@@ -16,6 +16,7 @@ import {
   formatUsdCompact,
 } from '@/lib/format'
 import { SectionCard } from '@/components/ui/SectionCard'
+import { Combobox2 } from '@/components/ui/Combobox2'
 import { Segmented } from '@/components/ui/Segmented'
 import { EmptyState, ErrorState, Skeleton } from '@/components/ui/States'
 
@@ -114,54 +115,48 @@ export function MatrizTab({ filters }: { filters: Filters }) {
             <label htmlFor="matriz-top-filas" className={labelClass}>
               Productos
             </label>
-            <select
+            <Combobox2
               id="matriz-top-filas"
               className={selectClass}
-              value={topFilas}
-              onChange={(event) => setTopFilas(Number(event.target.value))}
-            >
-              {[10, 20, 30, 50].map((value) => (
-                <option key={value} value={value}>
-                  Top {value}
-                </option>
-              ))}
-            </select>
+              value={String(topFilas)}
+              onChange={(value) => setTopFilas(Number(value))}
+              options={[10, 20, 30, 50].map((value) => ({
+                value: String(value),
+                label: `Top ${value}`,
+              }))}
+            />
           </div>
 
           <div>
             <label htmlFor="matriz-top-columnas" className={labelClass}>
               {nombraColumnas}
             </label>
-            <select
+            <Combobox2
               id="matriz-top-columnas"
               className={selectClass}
-              value={topColumnas}
-              onChange={(event) => setTopColumnas(Number(event.target.value))}
-            >
-              {[6, 10, 15, 20].map((value) => (
-                <option key={value} value={value}>
-                  Top {value}
-                </option>
-              ))}
-            </select>
+              value={String(topColumnas)}
+              onChange={(value) => setTopColumnas(Number(value))}
+              options={[6, 10, 15, 20].map((value) => ({
+                value: String(value),
+                label: `Top ${value}`,
+              }))}
+            />
           </div>
 
           <div>
             <label htmlFor="matriz-min-registros" className={labelClass}>
               Umbral de muestra
             </label>
-            <select
+            <Combobox2
               id="matriz-min-registros"
               className={selectClass}
-              value={minRegistros}
-              onChange={(event) => setMinRegistros(Number(event.target.value))}
-            >
-              {[0, 3, 5, 10].map((value) => (
-                <option key={value} value={value}>
-                  {value === 0 ? 'Sin mínimo' : `${value}+ operaciones`}
-                </option>
-              ))}
-            </select>
+              value={String(minRegistros)}
+              onChange={(value) => setMinRegistros(Number(value))}
+              options={[0, 3, 5, 10].map((value) => ({
+                value: String(value),
+                label: value === 0 ? 'Sin mínimo' : `${value}+ operaciones`,
+              }))}
+            />
           </div>
         </div>
 

@@ -2,6 +2,7 @@ import { Search, SlidersHorizontal, X } from 'lucide-react'
 import type { FormEvent } from 'react'
 import type { Filters, PartidaMeta } from '@/types/importaciones'
 import { SectionCard } from '@/components/ui/SectionCard'
+import { Combobox2 } from '@/components/ui/Combobox2'
 
 interface FilterBarProps {
   draft: Filters
@@ -90,63 +91,56 @@ export function FilterBar({
             <label htmlFor="aduana" className={labelClass}>
               Aduana
             </label>
-            <select
+            <Combobox2
               id="aduana"
               className={inputClass}
               value={draft.aduana ?? ''}
-              onChange={(event) => set('aduana', event.target.value)}
-            >
-              <option value="">Todas las aduanas</option>
-              {aduanas.map((aduana) => (
-                <option key={aduana} value={aduana}>
-                  {aduana}
-                </option>
-              ))}
-            </select>
+              onChange={(value) => set('aduana', value)}
+              options={[
+                { value: '', label: 'Todas las aduanas' },
+                ...aduanas.map((aduana) => ({ value: aduana, label: aduana })),
+              ]}
+              clearable
+            />
           </div>
 
           <div className="xl:col-span-2">
             <label htmlFor="pais" className={labelClass}>
               País de origen
             </label>
-            <select
+            <Combobox2
               id="pais"
               className={inputClass}
               value={draft.pais_origen ?? ''}
-              onChange={(event) => set('pais_origen', event.target.value)}
-            >
-              <option value="">Todos los países</option>
-              {paises.map((pais) => (
-                <option key={pais} value={pais}>
-                  {pais}
-                </option>
-              ))}
-            </select>
+              onChange={(value) => set('pais_origen', value)}
+              options={[
+                { value: '', label: 'Todos los países' },
+                ...paises.map((pais) => ({ value: pais, label: pais })),
+              ]}
+              clearable
+            />
           </div>
 
           <div className="sm:col-span-2 xl:col-span-4">
             <label htmlFor="partida" className={labelClass}>
               Partida arancelaria
             </label>
-            <select
+            <Combobox2
               id="partida"
               className={inputClass}
               value={draft.partida ?? ''}
-              onChange={(event) => set('partida', event.target.value)}
-            >
-              <option value="">Todas las partidas</option>
-              {partidas.map((partida) => (
-                <option
-                  key={`${partida.partida_arancelaria}-${partida.descripcion_partida ?? ''}`}
-                  value={partida.partida_arancelaria}
-                >
-                  {partida.partida_arancelaria}
-                  {partida.descripcion_partida
-                    ? ` · ${partida.descripcion_partida}`
-                    : ''}
-                </option>
-              ))}
-            </select>
+              onChange={(value) => set('partida', value)}
+              options={[
+                { value: '', label: 'Todas las partidas' },
+                ...partidas.map((partida) => ({
+                  value: partida.partida_arancelaria,
+                  label: partida.descripcion_partida
+                    ? `${partida.partida_arancelaria} · ${partida.descripcion_partida}`
+                    : partida.partida_arancelaria,
+                })),
+              ]}
+              clearable
+            />
           </div>
 
           <div className="sm:col-span-2 xl:col-span-4">

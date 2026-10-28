@@ -37,6 +37,7 @@ import {
   formatUsd,
 } from '@/lib/format'
 import { SectionCard } from '@/components/ui/SectionCard'
+import { Combobox2 } from '@/components/ui/Combobox2'
 import { Segmented } from '@/components/ui/Segmented'
 import { EmptyState, ErrorState, Skeleton } from '@/components/ui/States'
 
@@ -167,60 +168,54 @@ export function ComparativoTab({ filters }: { filters: Filters }) {
             <label htmlFor="comparativo-dimension" className={labelClass}>
               Dimensión
             </label>
-            <select
+            <Combobox2
               id="comparativo-dimension"
               className={selectClass}
               value={dimension}
-              onChange={(event) =>
-                setDimension(event.target.value as ComparativoDimension)
-              }
-            >
-              {DIMENSION_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
+              onChange={(value) => setDimension(value as ComparativoDimension)}
+              options={DIMENSION_OPTIONS.map((option) => ({
+                value: option.value,
+                label: option.label,
+              }))}
+            />
           </div>
 
           <div>
             <label htmlFor="comparativo-mes" className={labelClass}>
               Mes analizado
             </label>
-            <select
+            <Combobox2
               id="comparativo-mes"
               className={selectClass}
               value={mesValue}
-              onChange={(event) => setMes(event.target.value)}
+              onChange={setMes}
               disabled={periodos.length === 0}
-            >
-              {periodos.map((periodo) => (
-                <option key={periodo.mes} value={periodo.mes}>
-                  {formatMonthLong(periodo.mes)}
-                  {periodo.completo ? '' : ' · incompleto'}
-                </option>
-              ))}
-            </select>
+              options={periodos.map((periodo) => ({
+                value: periodo.mes,
+                label: `${formatMonthLong(periodo.mes)}${
+                  periodo.completo ? '' : ' · incompleto'
+                }`,
+              }))}
+            />
           </div>
 
           <div>
             <label htmlFor="comparativo-comparar" className={labelClass}>
               Comparar contra
             </label>
-            <select
+            <Combobox2
               id="comparativo-comparar"
               className={selectClass}
               value={compararValue}
-              onChange={(event) => setComparar(event.target.value)}
+              onChange={setComparar}
               disabled={compararOptions.length === 0}
-            >
-              {compararOptions.map((periodo) => (
-                <option key={periodo.mes} value={periodo.mes}>
-                  {formatMonthLong(periodo.mes)}
-                  {periodo.registros === 0 ? ' · sin datos' : ''}
-                </option>
-              ))}
-            </select>
+              options={compararOptions.map((periodo) => ({
+                value: periodo.mes,
+                label: `${formatMonthLong(periodo.mes)}${
+                  periodo.registros === 0 ? ' · sin datos' : ''
+                }`,
+              }))}
+            />
           </div>
 
           <div>
@@ -243,20 +238,16 @@ export function ComparativoTab({ filters }: { filters: Filters }) {
             <label htmlFor="comparativo-orden" className={labelClass}>
               Orden del top
             </label>
-            <select
+            <Combobox2
               id="comparativo-orden"
               className={selectClass}
               value={orderBy}
-              onChange={(event) =>
-                setOrderBy(event.target.value as ComparativoOrder)
-              }
-            >
-              {ORDER_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
+              onChange={(value) => setOrderBy(value as ComparativoOrder)}
+              options={ORDER_OPTIONS.map((option) => ({
+                value: option.value,
+                label: option.label,
+              }))}
+            />
           </div>
 
           <div className="max-w-2xl space-y-1.5 text-[11px] leading-relaxed text-slate-500">

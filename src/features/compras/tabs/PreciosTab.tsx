@@ -22,6 +22,7 @@ import {
   formatNumber,
 } from '@/lib/format'
 import { SectionCard } from '@/components/ui/SectionCard'
+import { Combobox2 } from '@/components/ui/Combobox2'
 import { EmptyState, ErrorState, Skeleton } from '@/components/ui/States'
 
 interface PreciosTabProps {
@@ -93,20 +94,21 @@ export function PreciosTab({ filters, anios }: PreciosTabProps) {
         bodyClassName=""
         actions={
           anios.length > 0 ? (
-            <label className="inline-flex items-center gap-2 text-[11px] text-slate-500">
-              Año
-              <select
+            <div className="inline-flex items-center gap-2 text-[11px] text-slate-500">
+              <label htmlFor="precios-anio">Año</label>
+              <Combobox2
+                id="precios-anio"
                 className={selectClass}
-                value={anioEfectivo ?? ''}
-                onChange={(event) => setAnio(Number(event.target.value))}
-              >
-                {anios.map((item) => (
-                  <option key={item} value={item}>
-                    {item}
-                  </option>
-                ))}
-              </select>
-            </label>
+                value={String(anioEfectivo ?? '')}
+                onChange={(value) => setAnio(Number(value))}
+                options={anios.map((item) => ({
+                  value: String(item),
+                  label: String(item),
+                }))}
+                wrapperClassName="inline-block w-auto"
+                ariaLabel="Año"
+              />
+            </div>
           ) : null
         }
       >
