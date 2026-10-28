@@ -50,6 +50,16 @@ cuatro pestañas:
 - **Importación CSV:** carga desde la interfaz (`POST /compras/importar`) con modo
   reemplazar/agregar.
 
+### Filtros en la URL
+
+Los filtros aplicados y la pestaña activa se guardan en query params, por lo que
+sobreviven a recargas, se pueden compartir y permiten navegar con atrás/adelante.
+
+- Importaciones: `/?aduana=CANCUN-%20QUINTANA%20ROO&partida=306179100&tab=productos`
+- Compras: `/compras?categoria=AVES&ambito=internacional&tab=graficas`
+- `tab` controla la pestaña y no se envía a la API.
+- `src/lib/viewRoutes.ts` centraliza el parseo y los builders de URL.
+
 Transversal a todas las pestañas de importaciones:
 
 - **Filtros globales:** rango de fechas, aduana, país de origen, partida,
@@ -68,6 +78,13 @@ desde `src/App.tsx`. La conversación se conserva al cambiar de módulo y al
 recargar la página mediante `localStorage`; se envían los últimos mensajes al
 backend para mantener el contexto. El botón de limpiar conversación también
 elimina el historial guardado.
+
+Cuando el backend devuelve `filtros_sugeridos`, el chat navega automáticamente a
+la vista correspondiente y aplica los filtros canónicos y la pestaña sugerida. Por
+ejemplo, una consulta de compras de Aves abre
+`/compras?categoria=AVES&tab=graficas`, y una consulta de productos en Cancún abre
+`/?aduana=CANCUN-%20QUINTANA%20ROO&tab=productos`. Los filtros del chat reemplazan los
+que estuvieran activos.
 
 ## Puesta en marcha
 
@@ -139,6 +156,7 @@ src/
 │   │   └── tabs/         # Precios y Comparativo
 │   └── chatbot/          # widget del asistente
 ├── lib/format.ts         # formato de moneda MXN/USD, fechas y porcentajes
+├── lib/viewRoutes.ts     # filtros y pestañas en query params
 ├── services/api/         # cliente HTTP y endpoints separados por dominio
 ├── types/                # contratos del backend y tipos compartidos
 ├── App.tsx               # rutas / y /compras

@@ -8,6 +8,7 @@ import {
   type PointerEvent as ReactPointerEvent,
 } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
+import { useNavigate } from 'react-router-dom'
 import {
   Bot,
   Maximize2,
@@ -20,16 +21,27 @@ import {
   X,
 } from 'lucide-react'
 import { api } from '@/services/api'
+import { buildViewUrl } from '@/lib/viewRoutes'
 import type { ChatHistoryMessage, ChatMessage } from '@/types/chatbot'
 import { MarkdownRenderer } from '@/components/ui/MarkdownRenderer'
 import { useChatHistory } from './useChatHistory'
 
 const TOOL_LABELS: Record<string, string> = {
-  resumen_kpis: 'KPIs',
-  ranking: 'Ranking',
-  serie_mensual: 'Serie mensual',
-  buscar_operaciones: 'Búsqueda',
-  catalogo: 'Catálogo',
+  importaciones_kpis: 'KPIs',
+  importaciones_ranking: 'Ranking',
+  importaciones_mensual: 'Serie mensual',
+  importaciones_comparativo: 'Comparativo',
+  importaciones_buscar: 'Búsqueda',
+  importaciones_catalogo: 'Catálogo',
+  compras_kpis: 'KPIs de compras',
+  compras_ranking: 'Ranking de compras',
+  compras_mensual: 'Serie de compras',
+  compras_precio_producto: 'Precios',
+  compras_comparativo: 'Comparativo de compras',
+  compras_buscar: 'Búsqueda de compras',
+  compras_catalogo: 'Catálogo de compras',
+  pedir_aclaracion: 'Aclaración',
+  capacidades: 'Capacidades',
 }
 
 const timeFormatter = new Intl.DateTimeFormat('es-MX', {
@@ -62,6 +74,7 @@ const MIN_WIDGET_WIDTH = 320
 const MIN_WIDGET_HEIGHT = 360
 
 export function ChatWidget() {
+  const navigate = useNavigate()
   const [open, setOpen] = useState(false)
   const [expanded, setExpanded] = useState(false)
   const [size, setSize] = useState<WidgetSize | null>(null)
@@ -183,6 +196,16 @@ export function ChatWidget() {
             tools: data.tool_calls,
           },
         ])
+
+        const sugeridos = data.filtros_sugeridos
+        if (sugeridos) {
+          const url = buildViewUrl(
+            sugeridos.modulo,
+            sugeridos.filtros,
+            sugeridos.tab,
+          )
+          if (url) navigate(url)
+        }
       },
       onError: (error) => {
         const detail =

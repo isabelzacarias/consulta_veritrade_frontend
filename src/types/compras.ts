@@ -1,4 +1,5 @@
 export type AmbitoCompra = 'nacional' | 'internacional'
+export type ComprasTab = 'graficas' | 'precios' | 'comparativo' | 'tabla'
 export type ComprasOrder =
   | 'fecha'
   | 'importe_mxn'

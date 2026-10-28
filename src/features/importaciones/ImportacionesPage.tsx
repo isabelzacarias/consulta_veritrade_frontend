@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import {
   keepPreviousData,
   useIsFetching,
@@ -21,6 +22,10 @@ import {
 import type { Filters, ImportacionesTab } from '@/types/importaciones'
 import { api } from '@/services/api'
 import { formatNumber } from '@/lib/format'
+import {
+  importacionesSearchParams,
+  parseImportacionesRoute,
+} from '@/lib/viewRoutes'
 import { FilterBar } from '@/features/importaciones/components/FilterBar'
 import { KpisSection } from '@/features/importaciones/components/KpisSection'
 import { UploadDialog } from '@/features/importaciones/dialogs/UploadDialog'
@@ -47,11 +52,23 @@ const TABS: Array<{ id: ImportacionesTab; label: string; icon: LucideIcon }> = [
 
 export function ImportacionesPage() {
   const queryClient = useQueryClient()
+  const [searchParams, setSearchParams] = useSearchParams()
 
-  const [draft, setDraft] = useState<Filters>({})
-  const [filters, setFilters] = useState<Filters>({})
-  const [activeTab, setActiveTab] = useState<ImportacionesTab>('resumen')
+  const { filters, tab: activeTab } = useMemo(
+    () => parseImportacionesRoute(searchParams),
+    [searchParams],
+  )
+  const [draft, setDraft] = useState<Filters>(filters)
+  const filtersKey = JSON.stringify(filters)
+  const lastFiltersKey = useRef(filtersKey)
   const [uploadOpen, setUploadOpen] = useState(false)
+
+  useEffect(() => {
+    if (lastFiltersKey.current !== filtersKey) {
+      lastFiltersKey.current = filtersKey
+      setDraft(filters)
+    }
+  }, [filters, filtersKey])
 
   const aduanas = useQuery({
     queryKey: ['meta', 'aduanas'],
@@ -85,12 +102,16 @@ export function ImportacionesPage() {
     }) > 0
 
   const applyFilters = () => {
-    setFilters({ ...draft })
+    setSearchParams(importacionesSearchParams(draft, activeTab))
   }
 
   const clearFilters = () => {
     setDraft({})
-    setFilters({})
+    setSearchParams(importacionesSearchParams({}, activeTab))
+  }
+
+  const setActiveTab = (tab: ImportacionesTab) => {
+    setSearchParams(importacionesSearchParams(filters, tab))
   }
 
   const refresh = () => {
@@ -219,21 +240,18 @@ export function ImportacionesPage() {
         {activeTab === 'importadores' && <ImportadoresTab filters={filters} />}
         {activeTab === 'proveedores' && <ProveedoresTab filters={filters} />}
         {activeTab === 'productos' && (
-          <ProductosTab
-            key={`productos-${JSON.stringify(filters)}`}
-            filters={filters}
-          />
+          <ProductosTab key={`productos-${filtersKey}`} filters={filters} />
         )}
         {activeTab === 'comparativo' && (
           <ComparativoTab
-            key={`comparativo-${JSON.stringify(filters)}`}
+            key={`comparativo-${filtersKey}`}
             filters={filters}
           />
         )}
         {activeTab === 'matriz' && <MatrizTab filters={filters} />}
         {activeTab === 'operaciones' && (
           <OperacionesTab
-            key={`operaciones-${JSON.stringify(filters)}`}
+            key={`operaciones-${filtersKey}`}
             filters={filters}
           />
         )}

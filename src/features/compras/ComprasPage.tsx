@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import {
   keepPreviousData,
   useIsFetching,
@@ -14,9 +15,10 @@ import {
   Upload,
   type LucideIcon,
 } from 'lucide-react'
-import type { ComprasFilters, ComprasOrder } from '@/types/compras'
+import type { ComprasFilters, ComprasOrder, ComprasTab } from '@/types/compras'
 import { api } from '@/services/api'
 import { formatNumber } from '@/lib/format'
+import { comprasSearchParams, parseComprasRoute } from '@/lib/viewRoutes'
 import { AppHeader } from '@/components/layout/AppHeader'
 import { ComprasFilters as ComprasFilterBar } from '@/features/compras/components/ComprasFilters'
 import { ComprasKpis } from '@/features/compras/components/ComprasKpis'
@@ -25,8 +27,6 @@ import { ComprasTable } from '@/features/compras/components/ComprasTable'
 import { ComparativoTab } from '@/features/compras/tabs/ComparativoTab'
 import { PreciosTab } from '@/features/compras/tabs/PreciosTab'
 import { ImportComprasDialog } from '@/features/compras/dialogs/ImportComprasDialog'
-
-type ComprasTab = 'graficas' | 'precios' | 'comparativo' | 'tabla'
 
 const TABS: Array<{ id: ComprasTab; label: string; icon: LucideIcon }> = [
   { id: 'graficas', label: 'Gráficas', icon: BarChart3 },
@@ -37,14 +37,28 @@ const TABS: Array<{ id: ComprasTab; label: string; icon: LucideIcon }> = [
 
 export function ComprasPage() {
   const queryClient = useQueryClient()
-  const [draft, setDraft] = useState<ComprasFilters>({})
-  const [filters, setFilters] = useState<ComprasFilters>({})
+  const [searchParams, setSearchParams] = useSearchParams()
+
+  const { filters, tab: activeTab } = useMemo(
+    () => parseComprasRoute(searchParams),
+    [searchParams],
+  )
+  const [draft, setDraft] = useState<ComprasFilters>(filters)
+  const filtersKey = JSON.stringify(filters)
+  const lastFiltersKey = useRef(filtersKey)
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(25)
   const [orderBy, setOrderBy] = useState<ComprasOrder>('fecha')
   const [desc, setDesc] = useState(true)
-  const [activeTab, setActiveTab] = useState<ComprasTab>('graficas')
   const [importOpen, setImportOpen] = useState(false)
+
+  useEffect(() => {
+    if (lastFiltersKey.current !== filtersKey) {
+      lastFiltersKey.current = filtersKey
+      setDraft(filters)
+      setPage(1)
+    }
+  }, [filters, filtersKey])
 
   const meta = useQuery({
     queryKey: ['compras', 'meta'],
@@ -92,14 +106,18 @@ export function ComprasPage() {
     useIsFetching({ predicate: (query) => query.queryKey[0] === 'compras' }) > 0
 
   const applyFilters = () => {
-    setFilters({ ...draft })
+    setSearchParams(comprasSearchParams(draft, activeTab))
     setPage(1)
   }
 
   const clearFilters = () => {
     setDraft({})
-    setFilters({})
+    setSearchParams(comprasSearchParams({}, activeTab))
     setPage(1)
+  }
+
+  const setActiveTab = (tab: ComprasTab) => {
+    setSearchParams(comprasSearchParams(filters, tab))
   }
 
   const refresh = () => {
@@ -232,11 +250,18 @@ export function ComprasPage() {
         )}
 
         {activeTab === 'precios' && (
-          <PreciosTab filters={filters} anios={meta.data?.anios ?? []} />
+          <PreciosTab
+            key={`precios-${filtersKey}`}
+            filters={filters}
+            anios={meta.data?.anios ?? []}
+          />
         )}
 
         {activeTab === 'comparativo' && (
-          <ComparativoTab filters={filters} />
+          <ComparativoTab
+            key={`comparativo-${filtersKey}`}
+            filters={filters}
+          />
         )}
 
         {activeTab === 'tabla' && (
