@@ -20,18 +20,9 @@ import {
   X,
 } from 'lucide-react'
 import { api } from '@/services/api'
-import type { AgenteToolCall } from '@/types/chatbot'
+import type { ChatHistoryMessage, ChatMessage } from '@/types/chatbot'
 import { MarkdownRenderer } from '@/components/ui/MarkdownRenderer'
-
-type ChatRole = 'assistant' | 'user'
-
-interface ChatMessage {
-  id: string
-  role: ChatRole
-  content: string
-  time: string
-  tools?: AgenteToolCall[]
-}
+import { useChatHistory } from './useChatHistory'
 
 const TOOL_LABELS: Record<string, string> = {
   resumen_kpis: 'KPIs',
@@ -75,7 +66,7 @@ export function ChatWidget() {
   const [expanded, setExpanded] = useState(false)
   const [size, setSize] = useState<WidgetSize | null>(null)
   const [resizing, setResizing] = useState(false)
-  const [messages, setMessages] = useState<ChatMessage[]>([])
+  const [messages, setMessages] = useChatHistory()
   const [input, setInput] = useState('')
 
   const widgetRef = useRef<HTMLElement>(null)
@@ -102,7 +93,10 @@ export function ChatWidget() {
   })
 
   const mutation = useMutation({
-    mutationFn: (pregunta: string) => api.agenteConsulta({ pregunta }),
+    mutationFn: (payload: {
+      pregunta: string
+      historial: ChatHistoryMessage[]
+    }) => api.agenteConsulta(payload),
   })
 
   const pending = mutation.isPending
@@ -159,6 +153,10 @@ export function ChatWidget() {
     const value = text.trim()
     if (!value || pending) return
 
+    const historial: ChatHistoryMessage[] = messages
+      .slice(-10)
+      .map(({ role, content }) => ({ role, content }))
+
     setMessages((current) => [
       ...current,
       {
@@ -171,7 +169,7 @@ export function ChatWidget() {
     setInput('')
     if (inputRef.current) inputRef.current.style.height = 'auto'
 
-    mutation.mutate(value, {
+    mutation.mutate({ pregunta: value, historial }, {
       onSuccess: (data) => {
         setMessages((current) => [
           ...current,

@@ -32,7 +32,6 @@ import { OperacionesTab } from '@/features/importaciones/tabs/OperacionesTab'
 import { PreguntasTab } from '@/features/importaciones/tabs/PreguntasTab'
 import { ComparativoTab } from '@/features/importaciones/tabs/ComparativoTab'
 import { MatrizTab } from '@/features/importaciones/tabs/MatrizTab'
-import { ChatWidget } from '@/features/chatbot/ChatWidget'
 import { AppHeader } from '@/components/layout/AppHeader'
 
 const TABS: Array<{ id: ImportacionesTab; label: string; icon: LucideIcon }> = [
@@ -265,8 +264,6 @@ export function ImportacionesPage() {
         onClose={() => setUploadOpen(false)}
         onLoaded={reloadAfterUpload}
       />
-
-      <ChatWidget />
     </div>
   )
 }

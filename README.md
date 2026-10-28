@@ -61,6 +61,14 @@ Transversal a todas las pestañas de importaciones:
   `/procesamiento/cargar`). Cada carga guarda una copia en `salida/historial/`.
 - **Estado de conexión:** verifica `/health` (API + MySQL) cada 30 segundos.
 
+### Chatbot
+
+El asistente está disponible en ambos módulos, **Importaciones** y **Compras**,
+desde `src/App.tsx`. La conversación se conserva al cambiar de módulo y al
+recargar la página mediante `localStorage`; se envían los últimos mensajes al
+backend para mantener el contexto. El botón de limpiar conversación también
+elimina el historial guardado.
+
 ## Puesta en marcha
 
 ### 1. Backend

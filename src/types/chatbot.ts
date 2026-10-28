@@ -8,3 +8,18 @@ export interface AgenteResult {
   tool_calls: AgenteToolCall[]
   datos_usados: unknown[]
 }
+
+export type ChatRole = 'assistant' | 'user'
+
+export interface ChatMessage {
+  id: string
+  role: ChatRole
+  content: string
+  time: string
+  tools?: AgenteToolCall[]
+}
+
+export interface ChatHistoryMessage {
+  role: ChatRole
+  content: string
+}

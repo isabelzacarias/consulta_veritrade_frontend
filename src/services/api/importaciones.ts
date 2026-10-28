@@ -23,7 +23,7 @@ import type {
   ProveedorRow,
   TipoImportacionRow,
 } from '@/types/importaciones'
-import type { AgenteResult } from '@/types/chatbot'
+import type { AgenteResult, ChatHistoryMessage } from '@/types/chatbot'
 import type { Page } from '@/types/common'
 import {
   API_BASE,
@@ -221,7 +221,10 @@ export const importacionesApi = {
       signal,
     }),
 
-  agenteConsulta: (payload: { pregunta: string }, signal?: AbortSignal) =>
+  agenteConsulta: (
+    payload: { pregunta: string; historial?: ChatHistoryMessage[] },
+    signal?: AbortSignal,
+  ) =>
     request<AgenteResult>('/agente/consulta', undefined, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
