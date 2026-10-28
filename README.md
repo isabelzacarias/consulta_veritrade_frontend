@@ -79,6 +79,13 @@ recargar la página mediante `localStorage`; se envían los últimos mensajes al
 backend para mantener el contexto. El botón de limpiar conversación también
 elimina el historial guardado.
 
+Cuando el backend devuelve `filtros_sugeridos`, el chat navega automáticamente a
+la vista correspondiente y aplica los filtros canónicos y la pestaña sugerida. Por
+ejemplo, una consulta de compras de Aves abre
+`/compras?categoria=AVES&tab=graficas`, y una consulta de productos en Cancún abre
+`/?aduana=CANCUN-%20QUINTANA%20ROO&tab=productos`. Los filtros del chat reemplazan los
+que estuvieran activos.
+
 ## Puesta en marcha
 
 ### 1. Backend

@@ -140,3 +140,44 @@ export function buildComprasUrl(
   const query = comprasSearchParams(filters, tab).toString()
   return query ? `/compras?${query}` : '/compras'
 }
+
+export function buildViewUrl(
+  modulo: 'importaciones' | 'compras',
+  filtros: Record<string, string>,
+  tab?: string | null,
+): string | null {
+  if (modulo === 'importaciones') {
+    const filters: Filters = {
+      fecha_desde: filtros.fecha_desde,
+      fecha_hasta: filtros.fecha_hasta,
+      aduana: filtros.aduana,
+      pais_origen: filtros.pais_origen,
+      partida: filtros.partida,
+      importador: filtros.importador,
+      exportador: filtros.exportador,
+    }
+    const candidate = tab ?? undefined
+    const nextTab = isImportacionesTab(candidate) ? candidate : 'resumen'
+    return buildImportacionesUrl(filters, nextTab)
+  }
+
+  if (modulo === 'compras') {
+    const ambito = filtros.ambito
+    const filters: ComprasFilters = {
+      fecha_desde: filtros.fecha_desde,
+      fecha_hasta: filtros.fecha_hasta,
+      categoria: filtros.categoria,
+      proveedor: filtros.proveedor,
+      descripcion: filtros.descripcion,
+      ambito:
+        ambito === 'nacional' || ambito === 'internacional' ? ambito : undefined,
+      fraccion: filtros.fraccion,
+      q: filtros.q,
+    }
+    const candidate = tab ?? undefined
+    const nextTab = isComprasTab(candidate) ? candidate : 'graficas'
+    return buildComprasUrl(filters, nextTab)
+  }
+
+  return null
+}
