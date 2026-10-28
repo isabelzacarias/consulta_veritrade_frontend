@@ -2,11 +2,14 @@
 
 Panel web (React + TypeScript + Vite + Tailwind) para consultar la API del backend
 [`Procesar_veritrade-backend`](../Procesar_veritrade-backend). Consume los endpoints
-de reportes, metadatos, importaciones, exportación y procesamiento de Excel.
+de reportes, metadatos, importaciones, compras por artículo, exportación y procesamiento de Excel.
 
 ## Vistas
 
-`src/features/panel/PanelPage.tsx` organiza el análisis en pestañas:
+El header compartido (`src/components/AppHeader.tsx`) navega entre **Importaciones**
+(`/`) y **Compras** (`/compras`).
+
+`src/features/panel/PanelPage.tsx` organiza el análisis de importaciones en pestañas:
 
 - **Resumen:** KPIs, evolución mensual, tipo de importación (agrupado o detalle),
   países de origen y top de importadores.
@@ -16,20 +19,40 @@ de reportes, metadatos, importaciones, exportación y procesamiento de Excel.
   exportador × país.
 - **Productos y costos:** ranking de fracciones arancelarias, costo USD/kg y
   distribución de peso entre importadores para la partida seleccionada.
+- **Comparativo:** dos meses calendario, variación de valor/volumen, cambio de
+  participación en puntos porcentuales, estados nuevo/desaparece y detalle por
+  partida, país, importador o proveedor.
+- **Matriz:** mapa de calor de partidas × país/proveedor, con top N, “Otros”,
+  participación dentro de cada producto y marca de muestra baja.
 - **Operaciones:** búsqueda por descripción comercial, paginación, detalle en modal
   y exportación a XLSX/CSV.
 - **Preguntas:** preguntas frecuentes precargadas en el backend (`/preguntas`) que
   se ejecutan contra `/consulta` y muestran un resumen con datos. Sin entrada de
   texto libre.
 
-Transversal a todas las pestañas:
+`src/features/compras/ComprasPage.tsx` es el módulo independiente de compras por
+artículo (HORBIS INNOTRADE). Filtros y KPIs son comunes; el detalle se separa en dos
+pestañas:
+
+- **KPIs:** importe total MXN, compras, proveedores, participación internacional,
+  compras nacionales/internacionales, categorías y fracciones válidas.
+- **Gráficas:** evolución mensual, nacional vs internacional, top categorías y top
+  proveedores.
+- **Tabla:** artículos paginados con fecha, categoría, fracción, cantidad, importe,
+  proveedor y ámbito; exportación XLSX/CSV.
+- **Filtros:** fecha, categoría, ámbito, proveedor, fracción y búsqueda.
+- **Importación CSV:** carga desde la interfaz (`POST /compras/importar`) con modo
+  reemplazar/agregar.
+
+Transversal a todas las pestañas de importaciones:
 
 - **Filtros globales:** rango de fechas, aduana, país de origen, partida,
   importador y exportador.
 - **Indicadores (KPIs):** valor total USD, volumen, operaciones, costo unitario,
   importadores, exportadores, partidas y países.
-- **Importación de Excel:** sube el archivo, ejecuta el pipeline del backend y
-  carga los datos a MySQL (`/procesamiento/upload` + `/procesamiento/cargar`).
+- **Importación de Excel:** sube uno o varios archivos, ejecuta el pipeline del
+  backend y carga los datos a MySQL (`/procesamiento/upload-lote` +
+  `/procesamiento/cargar`). Cada carga guarda una copia en `salida/historial/`.
 - **Estado de conexión:** verifica `/health` (API + MySQL) cada 30 segundos.
 
 ## Puesta en marcha
@@ -87,13 +110,17 @@ npm run lint     # ESLint
 ```
 src/
 ├── components/ui/        # SectionCard, RankingTable, BarList, Segmented, estados
+├── components/
+│   ├── AppHeader.tsx     # navegación Importaciones / Compras
+│   └── ui/               # SectionCard, RankingTable, BarList, Segmented, estados
 ├── features/panel/       # layout, filtros, KPIs, gráficas, modales
-│   └── tabs/             # Resumen, Importadores, Proveedores, Productos, Operaciones, Preguntas
-├── lib/format.ts         # formato de moneda, fechas y porcentajes
+│   └── tabs/             # Resumen, Importadores, Proveedores, Productos, Comparativo, Matriz, Operaciones, Preguntas
+├── features/compras/     # página, filtros, KPIs, gráficas, tabla e importación CSV
+├── lib/format.ts         # formato de moneda MXN/USD, fechas y porcentajes
 ├── services/api.ts       # cliente tipado de la API
-├── types/                # tipos del contrato del backend
-├── App.tsx
-└── main.tsx              # QueryClientProvider
+├── types/                # tipos del contrato del backend (importaciones y compras)
+├── App.tsx               # rutas / y /compras
+└── main.tsx              # QueryClientProvider + BrowserRouter
 ```
 
 ## Endpoints consumidos
@@ -109,7 +136,12 @@ src/
 | `GET /reportes/importadores` e `/importadores-cancun` | Rankings de importadores |
 | `GET /reportes/proveedores` y `/proveedores-por-pais` | Proveedores y detalle por país |
 | `GET /reportes/partidas` | Fracciones, costos y participación |
+| `GET /reportes/comparativo` | Comparativo mensual y cambio de participación |
+| `GET /reportes/matriz` | Matriz partida × país/proveedor |
 | `GET /importaciones` y `/importaciones/buscar` | Tabla paginada |
 | `GET /preguntas` y `POST /consulta` | Preguntas frecuentes y respuestas |
 | `GET /exportar/importaciones` | Descarga XLSX/CSV |
-| `POST /procesamiento/upload` y `/procesamiento/cargar` | Carga del Excel |
+| `GET /compras/{kpis,mensual,categorias,proveedores,meta,articulos}` | Dashboard, gráficas y tabla de compras |
+| `GET /compras/exportar` | Descarga de compras XLSX/CSV |
+| `POST /compras/importar` | Carga del CSV de compras |
+| `POST /procesamiento/upload-lote` y `/procesamiento/cargar` | Carga de uno o varios Excel |

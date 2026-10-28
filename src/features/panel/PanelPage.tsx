@@ -7,10 +7,11 @@ import {
 } from '@tanstack/react-query'
 import {
   Database,
+  GitCompareArrows,
+  Grid3X3,
   LayoutDashboard,
   MessageCircleQuestion,
   PackageSearch,
-  RefreshCw,
   Ship,
   Table2,
   Upload,
@@ -29,13 +30,18 @@ import { ProveedoresTab } from './tabs/ProveedoresTab'
 import { ProductosTab } from './tabs/ProductosTab'
 import { OperacionesTab } from './tabs/OperacionesTab'
 import { PreguntasTab } from './tabs/PreguntasTab'
+import { ComparativoTab } from './tabs/ComparativoTab'
+import { MatrizTab } from './tabs/MatrizTab'
 import { ChatWidget } from '../chatbot/ChatWidget'
+import { AppHeader } from '../../components/AppHeader'
 
 const TABS: Array<{ id: PanelTab; label: string; icon: LucideIcon }> = [
   { id: 'resumen', label: 'Resumen', icon: LayoutDashboard },
   { id: 'importadores', label: 'Importadores', icon: Users },
   { id: 'proveedores', label: 'Proveedores', icon: Ship },
   { id: 'productos', label: 'Productos y costos', icon: PackageSearch },
+  { id: 'comparativo', label: 'Comparativo', icon: GitCompareArrows },
+  { id: 'matriz', label: 'Matriz', icon: Grid3X3 },
   { id: 'operaciones', label: 'Operaciones', icon: Table2 },
   { id: 'preguntas', label: 'Preguntas', icon: MessageCircleQuestion },
 ]
@@ -108,43 +114,15 @@ export function PanelPage() {
 
   return (
     <div className="horbis-canvas min-h-screen text-slate-900">
-      <header className="sticky top-0 z-30 border-b border-brand-100/80 bg-white/85 backdrop-blur">
-        <div className="mx-auto flex max-w-[1600px] flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6">
-          <div className="flex items-center gap-3">
-            <span className="grid size-10 place-items-center rounded-xl bg-linear-to-br from-brand-700 to-aqua-500 text-white shadow-sm shadow-brand-900/20">
-              <Ship className="size-5" />
-            </span>
-            <div>
-              <p className="text-sm font-semibold tracking-tight text-slate-900">
-                Veritrade Analytics
-              </p>
-              <p className="text-[11px] text-slate-500">
-                Observatorio de importaciones · México
-              </p>
-            </div>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              onClick={refresh}
-              disabled={isRefreshing}
-              className="inline-flex h-9 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-xs font-medium text-slate-600 transition hover:bg-slate-50 disabled:opacity-60"
-            >
-              <RefreshCw className={`size-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
-              Actualizar
-            </button>
-            <button
-              type="button"
-              onClick={() => setUploadOpen(true)}
-              className="inline-flex h-9 items-center gap-2 rounded-lg bg-brand-700 px-3.5 text-xs font-medium text-white shadow-sm transition hover:bg-brand-800"
-            >
-              <Upload className="size-3.5" />
-              Importar datos
-            </button>
-          </div>
-        </div>
-      </header>
+      <AppHeader
+        title="Veritrade Analytics"
+        subtitle="Observatorio de importaciones · México"
+        isRefreshing={isRefreshing}
+        onRefresh={refresh}
+        onImport={() => setUploadOpen(true)}
+        importLabel="Importar datos"
+        updatedAt={lastUpdated}
+      />
 
       <main className="mx-auto max-w-[1600px] space-y-4 px-4 py-6 sm:px-6">
         <div className="flex flex-wrap items-end justify-between gap-3">
@@ -247,6 +225,13 @@ export function PanelPage() {
             filters={filters}
           />
         )}
+        {activeTab === 'comparativo' && (
+          <ComparativoTab
+            key={`comparativo-${JSON.stringify(filters)}`}
+            filters={filters}
+          />
+        )}
+        {activeTab === 'matriz' && <MatrizTab filters={filters} />}
         {activeTab === 'operaciones' && (
           <OperacionesTab
             key={`operaciones-${JSON.stringify(filters)}`}

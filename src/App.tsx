@@ -1,7 +1,15 @@
+import { Navigate, Route, Routes } from 'react-router-dom'
 import { PanelPage } from './features/panel/PanelPage'
+import { ComprasPage } from './features/compras/ComprasPage'
 
 function App() {
-  return <PanelPage />
+  return (
+    <Routes>
+      <Route path="/" element={<PanelPage />} />
+      <Route path="/compras" element={<ComprasPage />} />
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  )
 }
 
 export default App

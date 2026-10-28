@@ -20,11 +20,13 @@ interface UploadDialogProps {
 }
 
 type Status = 'idle' | 'procesando' | 'cargando' | 'ok' | 'error'
+type ModoCarga = 'agregar' | 'reemplazar'
 
 export function UploadDialog({ open, onClose, onLoaded }: UploadDialogProps) {
-  const [file, setFile] = useState<File | null>(null)
+  const [files, setFiles] = useState<File[]>([])
   const [hoja, setHoja] = useState('Veritrade')
   const [filaHeader, setFilaHeader] = useState(5)
+  const [modo, setModo] = useState<ModoCarga>('agregar')
   const [status, setStatus] = useState<Status>('idle')
   const [message, setMessage] = useState<string | null>(null)
   const [proceso, setProceso] = useState<Job | null>(null)
@@ -46,7 +48,8 @@ export function UploadDialog({ open, onClose, onLoaded }: UploadDialogProps) {
   const busy = status === 'procesando' || status === 'cargando'
 
   const reset = () => {
-    setFile(null)
+    setFiles([])
+    setModo('agregar')
     setStatus('idle')
     setMessage(null)
     setProceso(null)
@@ -61,7 +64,7 @@ export function UploadDialog({ open, onClose, onLoaded }: UploadDialogProps) {
 
   const submit = async (event: FormEvent) => {
     event.preventDefault()
-    if (!file) return
+    if (files.length === 0) return
 
     setStatus('procesando')
     setMessage(null)
@@ -69,17 +72,17 @@ export function UploadDialog({ open, onClose, onLoaded }: UploadDialogProps) {
     setCarga(null)
 
     try {
-      const jobProceso = await api.subirExcel(file, { hoja, filaHeader })
+      const jobProceso = await api.subirExcels(files, { hoja, filaHeader })
       setProceso(jobProceso)
 
       if (jobProceso.estado === 'error') {
         setStatus('error')
-        setMessage(jobProceso.mensaje ?? 'El backend no pudo procesar el archivo.')
+        setMessage(jobProceso.mensaje ?? 'El backend no pudo procesar los archivos.')
         return
       }
 
       setStatus('cargando')
-      const jobCarga = await api.cargarEnMysql()
+      const jobCarga = await api.cargarEnMysql(modo)
       setCarga(jobCarga)
 
       if (jobCarga.estado === 'error') {
@@ -89,7 +92,11 @@ export function UploadDialog({ open, onClose, onLoaded }: UploadDialogProps) {
       }
 
       setStatus('ok')
-      setMessage('Datos procesados y cargados en MySQL correctamente.')
+      setMessage(
+        modo === 'agregar'
+          ? 'Datos procesados y agregados a MySQL correctamente.'
+          : 'Datos procesados y cargados en MySQL correctamente.',
+      )
       onLoaded()
     } catch (error) {
       setStatus('error')
@@ -104,6 +111,27 @@ export function UploadDialog({ open, onClose, onLoaded }: UploadDialogProps) {
   const columnas = numberFrom(proceso?.detalle?.columnas)
   const filasInsertadas = numberFrom(carga?.detalle?.filas_insertadas)
   const filasTotales = numberFrom(carga?.detalle?.filas_totales_en_bd)
+  const copia = stringFrom(carga?.detalle?.copia)
+  const copiaError = stringFrom(carga?.detalle?.copia_error)
+  const archivosProcesados = Array.isArray(proceso?.detalle?.archivos)
+    ? proceso.detalle.archivos.length
+    : files.length
+  const totalKb = files.reduce((total, item) => total + item.size, 0) / 1024
+
+  const agregarArchivos = (seleccionados: FileList | null) => {
+    if (!seleccionados?.length) return
+    setFiles((actuales) => {
+      const existentes = new Set(actuales.map(fileKey))
+      const nuevos = Array.from(seleccionados).filter(
+        (item) => !existentes.has(fileKey(item)),
+      )
+      return [...actuales, ...nuevos]
+    })
+  }
+
+  const quitarArchivo = (indice: number) => {
+    setFiles((actuales) => actuales.filter((_, posicion) => posicion !== indice))
+  }
 
   return createPortal(
     <div
@@ -130,7 +158,9 @@ export function UploadDialog({ open, onClose, onLoaded }: UploadDialogProps) {
               Importar Excel de Veritrade
             </h2>
             <p className="mt-1 text-xs text-slate-500">
-              Limpia el archivo y reemplaza el contenido de la tabla de importaciones.
+              {modo === 'agregar'
+                ? 'Limpia los archivos y agrega los registros a la tabla de importaciones.'
+                : 'Limpia los archivos y reemplaza el contenido de la tabla de importaciones.'}
             </p>
           </div>
           <button
@@ -146,37 +176,71 @@ export function UploadDialog({ open, onClose, onLoaded }: UploadDialogProps) {
 
         <form onSubmit={submit} className="space-y-4 px-6 py-5">
           <label
-            htmlFor="archivo"
+            htmlFor="archivos"
             className={`flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed px-4 py-7 text-center transition ${
-              file
+              files.length > 0
                 ? 'border-brand-300 bg-brand-50/40'
                 : 'border-slate-200 bg-slate-50/50 hover:border-brand-300 hover:bg-brand-50/30'
             }`}
           >
             <span className="grid size-10 place-items-center rounded-full bg-white text-brand-700 shadow-sm ring-1 ring-slate-200">
-              {file ? (
+              {files.length > 0 ? (
                 <FileSpreadsheet className="size-5" />
               ) : (
                 <Upload className="size-5" />
               )}
             </span>
             <span className="text-sm font-medium text-slate-700">
-              {file ? file.name : 'Selecciona un archivo .xlsx'}
+              {files.length > 1
+                ? `${files.length} archivos seleccionados`
+                : files[0]?.name ?? 'Selecciona uno o varios archivos .xlsx'}
             </span>
             <span className="text-[11px] text-slate-400">
-              {file
-                ? `${(file.size / 1024).toFixed(0)} KB · haz clic para cambiarlo`
-                : 'El archivo se envía a POST /procesamiento/upload'}
+              {files.length > 0
+                ? `${totalKb.toFixed(0)} KB en total · haz clic para agregar más`
+                : 'Puedes seleccionar varios archivos a la vez'}
             </span>
             <input
-              id="archivo"
+              id="archivos"
               type="file"
               accept=".xlsx,.xls"
+              multiple
               className="sr-only"
               disabled={busy}
-              onChange={(event) => setFile(event.target.files?.[0] ?? null)}
+              onChange={(event) => {
+                agregarArchivos(event.target.files)
+                event.target.value = ''
+              }}
             />
           </label>
+
+          {files.length > 0 && (
+            <ul className="max-h-32 space-y-1 overflow-y-auto rounded-lg border border-slate-200 bg-slate-50/60 p-2">
+              {files.map((item, indice) => (
+                <li
+                  key={fileKey(item)}
+                  className="flex items-center gap-2 rounded-md bg-white px-2 py-1.5 text-xs text-slate-700"
+                >
+                  <FileSpreadsheet className="size-3.5 shrink-0 text-brand-700" />
+                  <span className="min-w-0 flex-1 truncate" title={item.name}>
+                    {item.name}
+                  </span>
+                  <span className="shrink-0 tabular-nums text-slate-400">
+                    {(item.size / 1024).toFixed(0)} KB
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => quitarArchivo(indice)}
+                    disabled={busy}
+                    className="grid size-6 shrink-0 place-items-center rounded text-slate-400 transition hover:bg-rose-50 hover:text-rose-600 disabled:opacity-40"
+                    aria-label={`Quitar ${item.name}`}
+                  >
+                    <X className="size-3.5" />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
 
           <div className="grid grid-cols-2 gap-3">
             <div>
@@ -213,12 +277,59 @@ export function UploadDialog({ open, onClose, onLoaded }: UploadDialogProps) {
             </div>
           </div>
 
-          <p className="rounded-lg bg-amber-50 px-3 py-2 text-[11px] leading-relaxed text-amber-800">
-            <AlertTriangle className="mr-1 inline size-3.5 align-text-bottom" />
-            Al cargar se ejecuta <code className="font-mono">TRUNCATE</code> sobre la
-            tabla <code className="font-mono">importaciones</code>; los registros
-            actuales serán reemplazados.
-          </p>
+          <div>
+            <p className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+              Modo de carga
+            </p>
+            <div className="grid grid-cols-2 gap-2">
+              {(['agregar', 'reemplazar'] as const).map((value) => {
+                const activo = modo === value
+                return (
+                  <label
+                    key={value}
+                    className={`cursor-pointer rounded-lg border px-3 py-2 transition ${
+                      activo
+                        ? 'border-brand-500 bg-brand-50/50 ring-2 ring-brand-500/15'
+                        : 'border-slate-200 bg-white hover:border-slate-300'
+                    } ${busy ? 'cursor-not-allowed opacity-60' : ''}`}
+                  >
+                    <input
+                      type="radio"
+                      name="modo-carga"
+                      value={value}
+                      checked={activo}
+                      disabled={busy}
+                      onChange={() => setModo(value)}
+                      className="sr-only"
+                    />
+                    <span className="block text-xs font-semibold text-slate-800">
+                      {value === 'agregar' ? 'Agregar' : 'Reemplazar'}
+                    </span>
+                    <span className="mt-0.5 block text-[11px] text-slate-500">
+                      {value === 'agregar'
+                        ? 'Conserva los datos actuales'
+                        : 'Reemplaza con los archivos'}
+                    </span>
+                  </label>
+                )
+              })}
+            </div>
+          </div>
+
+          {modo === 'reemplazar' ? (
+            <p className="rounded-lg bg-amber-50 px-3 py-2 text-[11px] leading-relaxed text-amber-800">
+              <AlertTriangle className="mr-1 inline size-3.5 align-text-bottom" />
+              Se eliminarán los registros actuales de{' '}
+              <code className="font-mono">importaciones</code> y se cargarán únicamente
+              los archivos seleccionados. La operación es transaccional.
+            </p>
+          ) : (
+            <p className="rounded-lg bg-slate-50 px-3 py-2 text-[11px] leading-relaxed text-slate-600">
+              <Database className="mr-1 inline size-3.5 align-text-bottom text-slate-500" />
+              Se añadirán los registros de los archivos a los existentes. Si vuelves a
+              subir un archivo ya cargado, sus filas se duplicarán.
+            </p>
+          )}
 
           {(busy || status === 'ok' || status === 'error') && (
             <div
@@ -234,7 +345,7 @@ export function UploadDialog({ open, onClose, onLoaded }: UploadDialogProps) {
                 {busy && <Loader2 className="size-4 animate-spin" />}
                 {status === 'ok' && <CheckCircle2 className="size-4" />}
                 {status === 'error' && <AlertTriangle className="size-4" />}
-                {status === 'procesando' && 'Limpiando y procesando el Excel…'}
+                {status === 'procesando' && 'Limpiando y procesando los Excel…'}
                 {status === 'cargando' && 'Insertando registros en MySQL…'}
                 {status === 'ok' && 'Importación completada'}
                 {status === 'error' && 'No se pudo completar la importación'}
@@ -242,6 +353,10 @@ export function UploadDialog({ open, onClose, onLoaded }: UploadDialogProps) {
               {message && <p className="mt-1 leading-relaxed">{message}</p>}
               {status === 'ok' && (
                 <dl className="mt-2 space-y-1 border-t border-emerald-200/70 pt-2">
+                  <SummaryRow
+                    label="Archivos"
+                    value={formatNumber(archivosProcesados)}
+                  />
                   {filasEntrada != null && (
                     <SummaryRow label="Filas leídas" value={formatNumber(filasEntrada)} />
                   )}
@@ -260,7 +375,13 @@ export function UploadDialog({ open, onClose, onLoaded }: UploadDialogProps) {
                       value={formatNumber(filasTotales)}
                     />
                   )}
+                  {copia && <SummaryRow label="Copia" value={copia} />}
                 </dl>
+              )}
+              {status === 'ok' && copiaError && (
+                <p className="mt-2 border-t border-emerald-200/70 pt-2 leading-relaxed text-amber-800">
+                  No se pudo guardar la copia: {copiaError}
+                </p>
               )}
             </div>
           )}
@@ -276,7 +397,7 @@ export function UploadDialog({ open, onClose, onLoaded }: UploadDialogProps) {
             </button>
             <button
               type="submit"
-              disabled={!file || busy || status === 'ok'}
+              disabled={files.length === 0 || busy || status === 'ok'}
               className="inline-flex items-center gap-2 rounded-lg bg-brand-700 px-4 py-2 text-xs font-medium text-white transition hover:bg-brand-800 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {busy ? (
@@ -284,7 +405,11 @@ export function UploadDialog({ open, onClose, onLoaded }: UploadDialogProps) {
               ) : (
                 <Database className="size-3.5" />
               )}
-              {status === 'ok' ? 'Importación completada' : 'Procesar y cargar'}
+              {status === 'ok'
+                ? 'Importación completada'
+                : modo === 'agregar'
+                  ? 'Procesar y agregar'
+                  : 'Procesar y reemplazar'}
             </button>
           </div>
         </form>
@@ -297,12 +422,20 @@ export function UploadDialog({ open, onClose, onLoaded }: UploadDialogProps) {
 function SummaryRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-center justify-between gap-3">
-      <dt className="text-emerald-700/80">{label}</dt>
-      <dd className="font-semibold tabular-nums">{value}</dd>
+      <dt className="shrink-0 text-emerald-700/80">{label}</dt>
+      <dd className="break-all text-right font-semibold tabular-nums">{value}</dd>
     </div>
   )
 }
 
+function fileKey(file: File): string {
+  return `${file.name}-${file.size}-${file.lastModified}`
+}
+
 function numberFrom(value: unknown): number | null {
   return typeof value === 'number' ? value : null
+}
+
+function stringFrom(value: unknown): string | null {
+  return typeof value === 'string' && value.length > 0 ? value : null
 }

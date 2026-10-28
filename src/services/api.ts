@@ -1,5 +1,9 @@
 import type {
   AgenteResult,
+  AnalisisMetric,
+  ComparativoDimension,
+  ComparativoOrder,
+  ComparativoResult,
   ConsultaResult,
   Filters,
   Health,
@@ -8,6 +12,8 @@ import type {
   ImportadorRow,
   Job,
   Kpis,
+  MatrizColumnaKey,
+  MatrizResult,
   MensualRow,
   OrderBy,
   Page,
@@ -19,6 +25,23 @@ import type {
   ProveedorRow,
   TipoImportacionRow,
 } from '../types/api'
+import type {
+  CompraArticulo,
+  CompraCategoria,
+  CompraComparativoOrder,
+  CompraComparativoResult,
+  CompraMensual,
+  CompraPrecioMensual,
+  CompraPrecioProducto,
+  CompraProveedor,
+  ComprasComparativoDimension,
+  ComprasComparativoMetric,
+  ComprasFilters,
+  ComprasImportResult,
+  ComprasKpis,
+  ComprasMeta,
+  ComprasOrder,
+} from '../types/compras'
 
 /**
  * En desarrollo el proxy de Vite reenvía `/api` a http://localhost:8000.
@@ -202,6 +225,192 @@ export const api = {
       { signal },
     ),
 
+  comparativo: (
+    filters: Filters,
+    opciones: {
+      dimension?: ComparativoDimension
+      mes?: string
+      comparar?: string
+      metrica?: AnalisisMetric
+      orderBy?: ComparativoOrder
+      top?: number
+      minRegistros?: number
+    } = {},
+    signal?: AbortSignal,
+  ) =>
+    request<ComparativoResult>(
+      '/reportes/comparativo',
+      {
+        ...filters,
+        dimension: opciones.dimension ?? 'partida',
+        mes: opciones.mes,
+        comparar: opciones.comparar,
+        metrica: opciones.metrica ?? 'valor_usd',
+        order_by: opciones.orderBy ?? 'delta_abs',
+        top: opciones.top ?? 20,
+        min_registros: opciones.minRegistros ?? 5,
+      },
+      { signal },
+    ),
+
+  matriz: (
+    filters: Filters,
+    opciones: {
+      columna?: MatrizColumnaKey
+      metrica?: AnalisisMetric
+      topFilas?: number
+      topColumnas?: number
+      minRegistros?: number
+    } = {},
+    signal?: AbortSignal,
+  ) =>
+    request<MatrizResult>(
+      '/reportes/matriz',
+      {
+        ...filters,
+        columna: opciones.columna ?? 'pais_origen',
+        metrica: opciones.metrica ?? 'valor_usd',
+        top_filas: opciones.topFilas ?? 20,
+        top_columnas: opciones.topColumnas ?? 10,
+        min_registros: opciones.minRegistros ?? 3,
+      },
+      { signal },
+    ),
+
+  comprasKpis: (filters: ComprasFilters, signal?: AbortSignal) =>
+    request<ComprasKpis>('/compras/kpis', filters, { signal }),
+
+  comprasMensual: (filters: ComprasFilters, signal?: AbortSignal) =>
+    request<CompraMensual[]>('/compras/mensual', filters, { signal }),
+
+  comprasCategorias: (
+    filters: ComprasFilters,
+    top = 8,
+    signal?: AbortSignal,
+  ) =>
+    request<CompraCategoria[]>('/compras/categorias', { ...filters, top }, {
+      signal,
+    }),
+
+  comprasProveedores: (
+    filters: ComprasFilters,
+    top = 8,
+    signal?: AbortSignal,
+  ) =>
+    request<CompraProveedor[]>('/compras/proveedores', { ...filters, top }, {
+      signal,
+    }),
+
+  comprasPrecios: (
+    filters: ComprasFilters,
+    opciones: { anio?: number; top?: number } = {},
+    signal?: AbortSignal,
+  ) =>
+    request<CompraPrecioProducto[]>(
+      '/compras/precios',
+      {
+        ...filters,
+        anio: opciones.anio,
+        top: opciones.top ?? 100,
+      },
+      { signal },
+    ),
+
+  comprasPrecioMensual: (
+    filters: ComprasFilters,
+    opciones: { descripcion: string; anio?: number },
+    signal?: AbortSignal,
+  ) =>
+    request<CompraPrecioMensual[]>(
+      '/compras/precios/mensual',
+      {
+        ...filters,
+        descripcion: opciones.descripcion,
+        anio: opciones.anio,
+      },
+      { signal },
+    ),
+
+  comprasComparativo: (
+    filters: ComprasFilters,
+    opciones: {
+      dimension?: ComprasComparativoDimension
+      mes?: string
+      comparar?: string
+      metrica?: ComprasComparativoMetric
+      orderBy?: CompraComparativoOrder
+      top?: number
+      minRegistros?: number
+    } = {},
+    signal?: AbortSignal,
+  ) =>
+    request<CompraComparativoResult>(
+      '/compras/comparativo',
+      {
+        ...filters,
+        dimension: opciones.dimension ?? 'descripcion',
+        mes: opciones.mes,
+        comparar: opciones.comparar,
+        metrica: opciones.metrica ?? 'importe_mxn',
+        order_by: opciones.orderBy ?? 'delta_abs',
+        top: opciones.top ?? 20,
+        min_registros: opciones.minRegistros ?? 3,
+      },
+      { signal },
+    ),
+
+  comprasMeta: (signal?: AbortSignal) =>
+    request<ComprasMeta>('/compras/meta', undefined, { signal }),
+
+  comprasArticulos: (
+    filters: ComprasFilters,
+    opciones: {
+      page?: number
+      pageSize?: number
+      orderBy?: ComprasOrder
+      desc?: boolean
+    } = {},
+    signal?: AbortSignal,
+  ) =>
+    request<Page<CompraArticulo>>(
+      '/compras/articulos',
+      {
+        ...filters,
+        page: opciones.page ?? 1,
+        page_size: opciones.pageSize ?? 25,
+        order_by: opciones.orderBy ?? 'fecha',
+        desc: opciones.desc ?? true,
+      },
+      { signal },
+    ),
+
+  comprasExportUrl: (
+    formato: 'xlsx' | 'csv',
+    filters: ComprasFilters = {},
+    orderBy: ComprasOrder = 'fecha',
+    desc = true,
+  ) =>
+    `${API_BASE}/compras/exportar${buildQuery({
+      ...filters,
+      formato,
+      order_by: orderBy,
+      desc,
+    })}`,
+
+  async importarCompras(
+    archivo: File,
+    modo: 'reemplazar' | 'agregar',
+    signal?: AbortSignal,
+  ): Promise<ComprasImportResult> {
+    const form = new FormData()
+    form.append('archivo', archivo)
+    return request<ComprasImportResult>('/compras/importar', { modo }, {
+      method: 'POST',
+      body: form,
+      signal,
+    })
+  },
+
   importaciones: (query: ImportacionesQuery, signal?: AbortSignal) => {
     const { q, ...params } = query
     const path = q?.trim() ? '/importaciones/buscar' : '/importaciones'
@@ -243,15 +452,17 @@ export const api = {
     filters: Filters & { q?: string } = {},
   ) => `${API_BASE}/exportar/${recurso}${buildQuery({ ...filters, formato })}`,
 
-  async subirExcel(
-    archivo: File,
+  async subirExcels(
+    archivos: File[],
     opciones: { hoja: string; filaHeader: number },
   ): Promise<Job> {
     const form = new FormData()
-    form.append('archivo', archivo)
+    for (const archivo of archivos) {
+      form.append('archivos', archivo)
+    }
 
     const response = await fetch(
-      `${API_BASE}/procesamiento/upload${buildQuery({
+      `${API_BASE}/procesamiento/upload-lote${buildQuery({
         hoja: opciones.hoja,
         fila_header: opciones.filaHeader,
       })}`,
@@ -260,17 +471,17 @@ export const api = {
 
     if (!response.ok) {
       throw new ApiError(
-        `No se pudo procesar el archivo (HTTP ${response.status})`,
+        `No se pudieron procesar los archivos (HTTP ${response.status})`,
         response.status,
       )
     }
     return (await response.json()) as Job
   },
 
-  cargarEnMysql: (signal?: AbortSignal) =>
+  cargarEnMysql: (modo: 'agregar' | 'reemplazar', signal?: AbortSignal) =>
     request<Job>(
       '/procesamiento/cargar',
-      { hoja: 'Datos_Limpios' },
+      { hoja: 'Datos_Limpios', modo },
       { method: 'POST', signal },
     ),
 }

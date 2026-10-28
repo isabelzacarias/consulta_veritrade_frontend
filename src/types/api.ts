@@ -168,11 +168,106 @@ export interface AgenteResult {
 }
 
 export type RankingMetric = 'valor_usd' | 'volumen_kg'
+export type AnalisisMetric = 'valor_usd' | 'volumen_kg'
+export type ComparativoDimension =
+  | 'partida'
+  | 'pais_origen'
+  | 'importador'
+  | 'exportador'
+export type ComparativoOrder = 'delta_abs' | 'delta_pp' | 'valor_actual'
+export type MatrizColumnaKey = 'pais_origen' | 'exportador'
+
+export interface PeriodoInfo {
+  mes: string
+  desde: string
+  hasta: string
+  completo: boolean
+  registros: number
+}
+
+export type ComparativoEstado =
+  | 'sube'
+  | 'baja'
+  | 'nuevo'
+  | 'desaparece'
+  | 'sin_cambio'
+
+export interface ComparativoItem {
+  clave: string
+  etiqueta: string
+  detalle: string | null
+  valor_actual: number | null
+  valor_previo: number | null
+  variacion_pct: number | null
+  share_actual: number | null
+  share_previo: number | null
+  delta_pp: number | null
+  registros_actual: number
+  registros_previo: number
+  estado: ComparativoEstado
+  muestra_suficiente: boolean
+}
+
+export interface ComparativoResult {
+  periodo: PeriodoInfo
+  periodo_anterior: PeriodoInfo
+  periodos: PeriodoInfo[]
+  dimension: ComparativoDimension
+  metrica: AnalisisMetric
+  order_by: ComparativoOrder
+  min_registros: number
+  total_actual: number | null
+  total_previo: number | null
+  items: ComparativoItem[]
+  total_items: number
+}
+
+export interface MatrizFila {
+  clave: string
+  etiqueta: string
+  detalle: string | null
+  total: number | null
+  registros: number
+  es_otros: boolean
+}
+
+export interface MatrizColumna {
+  clave: string
+  etiqueta: string
+  detalle: string | null
+  total: number | null
+  registros: number
+  es_otros: boolean
+}
+
+export interface MatrizCelda {
+  fila: string
+  columna: string
+  valor: number | null
+  valor_usd: number | null
+  volumen_kg: number | null
+  registros: number
+  share_fila: number | null
+  muestra_suficiente: boolean
+}
+
+export interface MatrizResult {
+  columna: MatrizColumna
+  metrica: AnalisisMetric
+  filas: MatrizFila[]
+  columnas: MatrizColumna[]
+  celdas: MatrizCelda[]
+  total: number | null
+  total_registros: number
+  omitidos: Record<string, number>
+}
 
 export type PanelTab =
   | 'resumen'
   | 'importadores'
   | 'proveedores'
   | 'productos'
+  | 'comparativo'
+  | 'matriz'
   | 'operaciones'
   | 'preguntas'

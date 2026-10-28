@@ -21,6 +21,29 @@ const usdDetailedFormatter = new Intl.NumberFormat('es-MX', {
   maximumFractionDigits: 4,
 })
 
+const mxnFormatter = new Intl.NumberFormat('es-MX', {
+  style: 'currency',
+  currency: 'MXN',
+  currencyDisplay: 'narrowSymbol',
+  maximumFractionDigits: 0,
+})
+
+const mxnCompactFormatter = new Intl.NumberFormat('es-MX', {
+  style: 'currency',
+  currency: 'MXN',
+  currencyDisplay: 'narrowSymbol',
+  notation: 'compact',
+  maximumFractionDigits: 1,
+})
+
+const mxnDetailedFormatter = new Intl.NumberFormat('es-MX', {
+  style: 'currency',
+  currency: 'MXN',
+  currencyDisplay: 'narrowSymbol',
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 4,
+})
+
 const numberFormatter = new Intl.NumberFormat('es-MX', {
   maximumFractionDigits: 0,
 })
@@ -63,6 +86,18 @@ export function formatUsdCompact(value: number | null | undefined): string {
 
 export function formatUsdDetailed(value: number | null | undefined): string {
   return value == null ? '—' : usdDetailedFormatter.format(value)
+}
+
+export function formatMxn(value: number | null | undefined): string {
+  return value == null ? '—' : mxnFormatter.format(value)
+}
+
+export function formatMxnCompact(value: number | null | undefined): string {
+  return value == null ? '—' : mxnCompactFormatter.format(value)
+}
+
+export function formatMxnDetailed(value: number | null | undefined): string {
+  return value == null ? '—' : mxnDetailedFormatter.format(value)
 }
 
 export function formatNumber(value: number | null | undefined): string {
@@ -118,4 +153,16 @@ export function formatMonthLong(value: string | null | undefined): string {
   if (!match) return value
   const date = new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, 1))
   return longMonthFormatter.format(date)
+}
+
+export function formatSignedPercent(value: number | null | undefined): string {
+  if (value == null) return '—'
+  const formatted = percentFormatter.format(value)
+  return value > 0 ? `+${formatted}%` : `${formatted}%`
+}
+
+export function formatSignedPp(value: number | null | undefined): string {
+  if (value == null) return '—'
+  const formatted = percentFormatter.format(value)
+  return value > 0 ? `+${formatted} pp` : `${formatted} pp`
 }
