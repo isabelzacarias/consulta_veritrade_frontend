@@ -14,17 +14,17 @@ import {
   Upload,
   type LucideIcon,
 } from 'lucide-react'
-import type { ComprasFilters, ComprasOrder } from '../../types/compras'
-import { api } from '../../services/api'
-import { formatNumber } from '../../lib/format'
-import { AppHeader } from '../../components/AppHeader'
-import { ComprasFilters as ComprasFilterBar } from './ComprasFilters'
-import { ComprasKpis } from './ComprasKpis'
-import { ComprasCharts } from './ComprasCharts'
-import { ComprasTable } from './ComprasTable'
-import { ComprasComparativoTab } from './ComprasComparativoTab'
-import { PreciosTab } from './PreciosTab'
-import { ImportComprasDialog } from './ImportComprasDialog'
+import type { ComprasFilters, ComprasOrder } from '@/types/compras'
+import { api } from '@/services/api'
+import { formatNumber } from '@/lib/format'
+import { AppHeader } from '@/components/layout/AppHeader'
+import { ComprasFilters as ComprasFilterBar } from '@/features/compras/components/ComprasFilters'
+import { ComprasKpis } from '@/features/compras/components/ComprasKpis'
+import { ComprasCharts } from '@/features/compras/components/ComprasCharts'
+import { ComprasTable } from '@/features/compras/components/ComprasTable'
+import { ComparativoTab } from '@/features/compras/tabs/ComparativoTab'
+import { PreciosTab } from '@/features/compras/tabs/PreciosTab'
+import { ImportComprasDialog } from '@/features/compras/dialogs/ImportComprasDialog'
 
 type ComprasTab = 'graficas' | 'precios' | 'comparativo' | 'tabla'
 
@@ -236,7 +236,7 @@ export function ComprasPage() {
         )}
 
         {activeTab === 'comparativo' && (
-          <ComprasComparativoTab filters={filters} />
+          <ComparativoTab filters={filters} />
         )}
 
         {activeTab === 'tabla' && (

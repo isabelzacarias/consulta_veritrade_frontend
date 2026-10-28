@@ -6,10 +6,11 @@ de reportes, metadatos, importaciones, compras por artículo, exportación y pro
 
 ## Vistas
 
-El header compartido (`src/components/AppHeader.tsx`) navega entre **Importaciones**
-(`/`) y **Compras** (`/compras`).
+El header compartido (`src/components/layout/AppHeader.tsx`) navega entre
+**Importaciones** (`/`) y **Compras** (`/compras`).
 
-`src/features/panel/PanelPage.tsx` organiza el análisis de importaciones en pestañas:
+`src/features/importaciones/ImportacionesPage.tsx` organiza el análisis de
+importaciones en pestañas:
 
 - **Resumen:** KPIs, evolución mensual, tipo de importación (agrupado o detalle),
   países de origen y top de importadores.
@@ -114,18 +115,34 @@ npm run lint     # ESLint
 
 ```
 src/
-├── components/ui/        # SectionCard, RankingTable, BarList, Segmented, estados
 ├── components/
-│   ├── AppHeader.tsx     # navegación Importaciones / Compras
+│   ├── layout/           # AppHeader y elementos de estructura
 │   └── ui/               # SectionCard, RankingTable, BarList, Segmented, estados
-├── features/panel/       # layout, filtros, KPIs, gráficas, modales
-│   └── tabs/             # Resumen, Importadores, Proveedores, Productos, Comparativo, Matriz, Operaciones, Preguntas
-├── features/compras/     # página, filtros, KPIs, gráficas, precios, comparativo, tabla e importación CSV
+├── features/
+│   ├── importaciones/
+│   │   ├── ImportacionesPage.tsx
+│   │   ├── components/   # filtros, KPIs, gráficas y secciones
+│   │   ├── dialogs/      # carga de Excel y detalle de operaciones
+│   │   └── tabs/         # Resumen, Importadores, Proveedores, Productos, Comparativo, Matriz, Operaciones, Preguntas
+│   ├── compras/
+│   │   ├── ComprasPage.tsx
+│   │   ├── components/   # filtros, KPIs, gráficas y tabla
+│   │   ├── dialogs/      # importación CSV
+│   │   └── tabs/         # Precios y Comparativo
+│   └── chatbot/          # widget del asistente
 ├── lib/format.ts         # formato de moneda MXN/USD, fechas y porcentajes
-├── services/api.ts       # cliente tipado de la API
-├── types/                # tipos del contrato del backend (importaciones y compras)
+├── services/api/         # cliente HTTP y endpoints separados por dominio
+├── types/                # contratos del backend y tipos compartidos
 ├── App.tsx               # rutas / y /compras
 └── main.tsx              # QueryClientProvider + BrowserRouter
+```
+
+Los imports internos usan el alias `@/`, configurado en `tsconfig.app.json` y
+`vite.config.ts`. Por ejemplo:
+
+```ts
+import { api } from '@/services/api'
+import type { Page } from '@/types/common'
 ```
 
 ## Endpoints consumidos

@@ -19,9 +19,9 @@ import {
   Trash2,
   X,
 } from 'lucide-react'
-import { api } from '../../services/api'
-import type { AgenteToolCall } from '../../types/api'
-import { MarkdownRenderer } from '../../components/ui/MarkdownRenderer'
+import { api } from '@/services/api'
+import type { AgenteToolCall } from '@/types/chatbot'
+import { MarkdownRenderer } from '@/components/ui/MarkdownRenderer'
 
 type ChatRole = 'assistant' | 'user'
 

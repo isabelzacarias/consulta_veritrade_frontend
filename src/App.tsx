@@ -1,11 +1,11 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
-import { PanelPage } from './features/panel/PanelPage'
-import { ComprasPage } from './features/compras/ComprasPage'
+import { ImportacionesPage } from '@/features/importaciones/ImportacionesPage'
+import { ComprasPage } from '@/features/compras/ComprasPage'
 
 function App() {
   return (
     <Routes>
-      <Route path="/" element={<PanelPage />} />
+      <Route path="/" element={<ImportacionesPage />} />
       <Route path="/compras" element={<ComprasPage />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

@@ -1,11 +1,11 @@
-import type { BaseRankingRow, RankingMetric } from '../../types/api'
+import type { BaseRankingRow, RankingMetric } from '@/types/importaciones'
 import {
   formatDecimal,
   formatKg,
   formatNumber,
   formatPercent,
   formatUsd,
-} from '../../lib/format'
+} from '@/lib/format'
 
 interface RankingTableProps<T extends BaseRankingRow> {
   rows: T[]
