@@ -46,6 +46,7 @@ import {
   formatPercent,
 } from '@/lib/format'
 import { SectionCard } from '@/components/ui/SectionCard'
+import { ChartDownloadButton } from '@/components/ui/ChartDownloadButton'
 import { BarList } from '@/components/ui/BarList'
 import { EmptyState, ErrorState, Skeleton } from '@/components/ui/States'
 import {
@@ -226,7 +227,7 @@ export function ProveedoresTab({
   const mensualRows = useMemo(() => mensual.data ?? [], [mensual.data])
   const annualComparison = useMemo(() => {
     const amounts = new Map<string, number>()
-    const months = new Set<number>()
+    const monthBounds = new Map<number, { first: number; last: number }>()
     const years = new Set<number>()
 
     for (const row of mensualRows) {
@@ -235,12 +236,21 @@ export function ProveedoresTab({
       const month = Number(monthText)
       if (!Number.isInteger(year) || !Number.isInteger(month)) continue
       years.add(year)
-      months.add(month)
       amounts.set(`${year}-${month}`, row.importe_mxn ?? 0)
+      const bounds = monthBounds.get(year)
+      monthBounds.set(
+        year,
+        bounds
+          ? {
+              first: Math.min(bounds.first, month),
+              last: Math.max(bounds.last, month),
+            }
+          : { first: month, last: month },
+      )
     }
 
     const availableYears = [...years].sort((a, b) => a - b)
-    const chartMonths = [...months].sort((a, b) => a - b)
+    const chartMonths = Array.from({ length: 12 }, (_, index) => index + 1)
     const data = chartMonths.map((month) => {
       const point: Record<string, number | string | null> = {
         x: month - 0.5,
@@ -249,10 +259,13 @@ export function ProveedoresTab({
 
       for (const year of availableYears) {
         const monthKey = `${year}-${String(month).padStart(2, '0')}`
+        const bounds = monthBounds.get(year)
+        const hasDataCoverage =
+          bounds != null && month >= bounds.first && month <= bounds.last
         const monthIsInRange =
           (!fechaDesde || monthKey >= fechaDesde.slice(0, 7)) &&
           (!fechaHasta || monthKey <= fechaHasta.slice(0, 7))
-        point[String(year)] = monthIsInRange
+        point[String(year)] = monthIsInRange && hasDataCoverage
           ? (amounts.get(`${year}-${month}`) ?? 0)
           : null
       }
@@ -279,7 +292,17 @@ export function ProveedoresTab({
       )
     })
 
-    return { years: availableYears, months: chartMonths, data, markers }
+    const monthsWithData = data.filter((point) =>
+      availableYears.some((year) => typeof point[String(year)] === 'number'),
+    ).length
+
+    return {
+      years: availableYears,
+      months: chartMonths,
+      monthsWithData,
+      data,
+      markers,
+    }
   }, [
     mensualRows,
     fechaDesde,
@@ -475,10 +498,15 @@ export function ProveedoresTab({
         title="Comparación entre proveedores"
         subtitle={`Importe por proveedor, respetando los demás filtros generales. Se muestran los 10 principales${selectedProviderCount ? ' y los proveedores seleccionados' : ''}.`}
         actions={
-          <span className="inline-flex items-center gap-1.5 text-[11px] text-slate-500">
-            <Trophy className="size-3.5" />
-            {formatNumber(comparisonData.length)} proveedores
-          </span>
+          <>
+            <span className="inline-flex items-center gap-1.5 text-[11px] text-slate-500">
+              <Trophy className="size-3.5" />
+              {formatNumber(comparisonData.length)} proveedores
+            </span>
+            {comparisonData.length > 0 && (
+              <ChartDownloadButton fileName="comparacion-proveedores" />
+            )}
+          </>
         }
         bodyClassName="p-4 pt-5"
       >
@@ -565,6 +593,9 @@ export function ProveedoresTab({
         subtitle="Importe mensual por año, con los filtros generales aplicados. Las líneas verticales señalan la fecha exacta de cada año."
         actions={
           <>
+            {annualComparison.data.length > 0 && (
+              <ChartDownloadButton fileName="comparacion-anual-compras" />
+            )}
             <button
               type="button"
               aria-expanded={dateFilterOpen}
@@ -830,8 +861,23 @@ export function ProveedoresTab({
                 </LineChart>
               </ResponsiveContainer>
             </div>
+            {(annualComparison.years.length === 1 ||
+              annualComparison.monthsWithData <= 1) && (
+              <p data-chart-export-footer className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] leading-relaxed text-amber-800">
+                {annualComparison.years.length === 1
+                  ? `Solo hay compras registradas en ${annualComparison.years[0]} con los filtros actuales. Se necesitan registros de otros años para comparar varias líneas.`
+                  : ''}
+                {annualComparison.years.length === 1 &&
+                annualComparison.monthsWithData <= 1
+                  ? ' '
+                  : ''}
+                {annualComparison.monthsWithData <= 1
+                  ? 'El rango de fechas actual deja solo un mes en la serie; amplíalo para ver la evolución.'
+                  : ''}
+              </p>
+            )}
             {markerLegend.length > 0 && (
-              <div className="mt-3 border-t border-slate-100 pt-3">
+              <div data-chart-export-footer className="mt-3 border-t border-slate-100 pt-3">
                 <p className="mb-2 text-[10px] font-medium uppercase tracking-wide text-slate-400">
                   Fechas señaladas
                 </p>
@@ -867,6 +913,11 @@ export function ProveedoresTab({
           subtitle="Importe mensual separado por ámbito, con los filtros generales aplicados"
           className="xl:col-span-2"
           bodyClassName="p-4 pt-5"
+          actions={
+            mensualRows.length > 0 ? (
+              <ChartDownloadButton fileName="evolucion-mensual-por-ambito" />
+            ) : null
+          }
         >
           {mensual.isLoading && !mensual.data ? (
             <Skeleton className="h-[292px] w-full" />
@@ -884,7 +935,7 @@ export function ProveedoresTab({
             />
           ) : (
             <>
-              <div className="mb-2 flex flex-wrap items-center justify-between gap-2 text-[11px]">
+              <div data-chart-export-footer className="mb-2 flex flex-wrap items-center justify-between gap-2 text-[11px]">
                 <span className="text-slate-500">Totales del período</span>
                 <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
                   <span className="inline-flex items-center gap-1.5 font-medium text-brand-800">
@@ -982,7 +1033,8 @@ export function ProveedoresTab({
                       stroke="#5b2480"
                       strokeWidth={2}
                       fill="url(#proveedorNacionalFill)"
-                      dot={mensualRows.length === 1}
+                      dot={{ r: 4, strokeWidth: 1, fill: '#fff' }}
+                      activeDot={{ r: 5, strokeWidth: 2, stroke: '#fff' }}
                       isAnimationActive={false}
                     />
                     <Area
@@ -992,7 +1044,8 @@ export function ProveedoresTab({
                       stroke="#06b6d4"
                       strokeWidth={2}
                       fill="url(#proveedorInternacionalFill)"
-                      dot={mensualRows.length === 1}
+                      dot={{ r: 4, strokeWidth: 1, fill: '#fff' }}
+                      activeDot={{ r: 5, strokeWidth: 2, stroke: '#fff' }}
                       isAnimationActive={false}
                     />
                   </AreaChart>
@@ -1006,6 +1059,11 @@ export function ProveedoresTab({
           title="Compras por categoría"
           subtitle="Categorías con mayor importe dentro de los filtros aplicados"
           bodyClassName="p-4 pt-2"
+          actions={
+            categorias.data?.length ? (
+              <ChartDownloadButton fileName="categorias-por-proveedor" />
+            ) : null
+          }
         >
           {categorias.isLoading && !categorias.data ? (
             <div className="space-y-3 py-3">
@@ -1046,10 +1104,15 @@ export function ProveedoresTab({
           className="xl:col-span-2"
           bodyClassName="p-4 pt-2"
           actions={
-            <span className="inline-flex items-center gap-1.5 text-[11px] text-slate-500">
-              <ChartLine className="size-3.5" />
-              Top 10
-            </span>
+            <>
+              <span className="inline-flex items-center gap-1.5 text-[11px] text-slate-500">
+                <ChartLine className="size-3.5" />
+                Top 10
+              </span>
+              {productos.data?.length ? (
+                <ChartDownloadButton fileName="principales-articulos-compras" />
+              ) : null}
+            </>
           }
         >
           {productos.isLoading && !productos.data ? (
@@ -1088,6 +1151,11 @@ export function ProveedoresTab({
           title="Concentración por artículo"
           subtitle="Participación de los 10 artículos principales en el gasto total"
           bodyClassName="p-4 pt-2"
+          actions={
+            concentration.data.length > 0 ? (
+              <ChartDownloadButton fileName="concentracion-por-articulo" />
+            ) : null
+          }
         >
           {productos.isLoading && !productos.data ? (
             <Skeleton className="h-[340px] w-full" />
@@ -1131,7 +1199,10 @@ export function ProveedoresTab({
                     />
                   </PieChart>
                 </ResponsiveContainer>
-                <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+                <div
+                  data-chart-overlay
+                  className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center"
+                >
                   <span className="text-[10px] uppercase tracking-wide text-slate-400">
                     Top 10
                   </span>
@@ -1141,7 +1212,7 @@ export function ProveedoresTab({
                   <span className="text-[10px] text-slate-400">del gasto</span>
                 </div>
               </div>
-              <ul className="mt-3 space-y-2">
+              <ul data-chart-export-footer className="mt-3 space-y-2">
                 {concentration.data.map((row) => (
                   <li
                     key={row.name}
@@ -1164,7 +1235,7 @@ export function ProveedoresTab({
                   </li>
                 ))}
               </ul>
-              <div className="mt-4 border-t border-slate-100 pt-3">
+              <div data-chart-export-footer className="mt-4 border-t border-slate-100 pt-3">
                 <p className="mb-2 text-[10px] font-medium uppercase tracking-wide text-slate-400">
                   Participación acumulada
                 </p>

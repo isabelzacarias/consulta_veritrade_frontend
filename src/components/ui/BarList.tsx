@@ -41,7 +41,11 @@ export function BarList({
   const max = Math.max(...items.map((item) => item.value ?? 0), 1)
 
   return (
-    <ol className={`divide-y divide-slate-100 ${className}`}>
+    <ol
+      data-chart-export-list
+      data-chart-tone={tone}
+      className={`divide-y divide-slate-100 ${className}`}
+    >
       {items.map((item) => {
         const width =
           widthMode === 'percent' && item.pct != null

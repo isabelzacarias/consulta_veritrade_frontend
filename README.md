@@ -40,19 +40,21 @@ cinco pestañas:
 - **KPIs:** importe total MXN, compras, proveedores, participación internacional,
   compras nacionales/internacionales, categorías y fracciones válidas.
 - **Gráficas:** evolución mensual, nacional vs internacional, top categorías y top
-  proveedores; desde cada proveedor se puede abrir su análisis detallado.
+  proveedores; las gráficas descargables permiten exportar su imagen PNG. Desde
+  cada proveedor se puede abrir su análisis detallado.
 - **Proveedores:** análisis basado en los filtros generales aplicados: KPIs,
   evolución mensual por ámbito, comparación de importe entre proveedores y
   comparación anual de compras por mes. La comparación anual marca los festivos
   oficiales de México y Semana Santa en sus fechas correspondientes por año; se
   pueden seleccionar las fechas a señalar y agregar fechas personalizadas que se
   repiten en cada año comparado. También muestra categorías, principales
-  artículos y acceso a la tabla de compras individuales.
+  artículos y acceso a la tabla de compras individuales; sus gráficas también
+  pueden descargarse como PNG, incluyendo títulos, totales y leyendas asociados.
 - **Precios:** precio promedio anual por producto ponderado por cantidad, con tabla
-  top 100 y evolución mensual del producto seleccionado.
+  top 100 y evolución mensual del producto seleccionado, descargable como PNG.
 - **Comparativo:** comparación entre dos meses calendario por descripción, categoría
   o proveedor; métrica de importe, cantidad o precio promedio; diferencia absoluta,
-  variación y participación.
+  variación y participación. La gráfica de diferencias se puede descargar como PNG.
 - **Tabla:** artículos paginados con fecha, categoría, fracción, cantidad, importe,
   proveedor y ámbito; exportación XLSX/CSV.
 - **Filtros:** fecha, categoría, ámbito, proveedor, artículo exacto, fracción y búsqueda.

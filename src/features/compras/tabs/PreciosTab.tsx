@@ -22,6 +22,7 @@ import {
   formatNumber,
 } from '@/lib/format'
 import { SectionCard } from '@/components/ui/SectionCard'
+import { ChartDownloadButton } from '@/components/ui/ChartDownloadButton'
 import { Combobox2 } from '@/components/ui/Combobox2'
 import { EmptyState, ErrorState, Skeleton } from '@/components/ui/States'
 
@@ -214,11 +215,14 @@ export function PreciosTab({ filters, anios }: PreciosTabProps) {
         }
         bodyClassName="p-4 pt-5"
         actions={
-          producto ? (
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-brand-100 bg-brand-50 px-2.5 py-1 text-[11px] font-medium text-brand-700">
-              <ChartLine className="size-3" />
-              {formatNumber(producto.meses)} meses con compras
-            </span>
+          producto && serie.length > 0 ? (
+            <>
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-brand-100 bg-brand-50 px-2.5 py-1 text-[11px] font-medium text-brand-700">
+                <ChartLine className="size-3" />
+                {formatNumber(producto.meses)} meses con compras
+              </span>
+              <ChartDownloadButton fileName="evolucion-mensual-precio" />
+            </>
           ) : null
         }
       >
@@ -245,7 +249,7 @@ export function PreciosTab({ filters, anios }: PreciosTabProps) {
           />
         ) : (
           <>
-            <div className="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
+            <div data-chart-export-footer className="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
               <Dato
                 label="Precio promedio anual"
                 value={formatMxnDetailed(precioAnual)}

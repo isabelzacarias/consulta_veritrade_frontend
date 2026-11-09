@@ -34,6 +34,7 @@ import {
   formatPercent,
 } from '@/lib/format'
 import { SectionCard } from '@/components/ui/SectionCard'
+import { ChartDownloadButton } from '@/components/ui/ChartDownloadButton'
 import { BarList } from '@/components/ui/BarList'
 import { EmptyState, ErrorState, Skeleton } from '@/components/ui/States'
 
@@ -85,10 +86,13 @@ function MonthlyCard({ query }: { query: QuerySlice<CompraMensual[]> }) {
       className="xl:col-span-2"
       bodyClassName="p-4 pt-5"
       actions={
-        <span className="inline-flex items-center gap-1.5 rounded-full border border-brand-100 bg-brand-50 px-2.5 py-1 text-[11px] font-medium text-brand-700">
-          <BarChart3 className="size-3" />
-          {formatNumber(data.length)} meses
-        </span>
+        <>
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-brand-100 bg-brand-50 px-2.5 py-1 text-[11px] font-medium text-brand-700">
+            <BarChart3 className="size-3" />
+            {formatNumber(data.length)} meses
+          </span>
+          <ChartDownloadButton fileName="evolucion-mensual-compras" />
+        </>
       }
     >
       {query.isLoading ? (
@@ -159,6 +163,7 @@ function MonthlyCard({ query }: { query: QuerySlice<CompraMensual[]> }) {
                   stroke="#5b2480"
                   strokeWidth={2.25}
                   fill="url(#comprasMonthlyFill)"
+                  dot={{ r: 4, strokeWidth: 1, fill: '#fff' }}
                   activeDot={{ r: 4, strokeWidth: 2, stroke: '#fff' }}
                   isAnimationActive={false}
                 />
@@ -166,7 +171,7 @@ function MonthlyCard({ query }: { query: QuerySlice<CompraMensual[]> }) {
             </ResponsiveContainer>
           </div>
           {hayParciales && (
-            <p className="mt-3 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] leading-relaxed text-amber-800">
+            <p data-chart-export-footer className="mt-3 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] leading-relaxed text-amber-800">
               <Info className="mt-0.5 size-3.5 shrink-0" />
               El primer o último mes no cubre el mes calendario completo. La serie
               refleja únicamente los días capturados en el CSV.
@@ -202,6 +207,11 @@ function AmbitoCard({ kpis }: { kpis: ComprasKpis | undefined }) {
       title="Nacional vs internacional"
       subtitle="Origen de las compras por proveedor"
       bodyClassName="p-4 pt-5"
+      actions={
+        total > 0 ? (
+          <ChartDownloadButton fileName="compras-nacionales-internacionales" />
+        ) : null
+      }
     >
       {!kpis ? (
         <Skeleton className="h-[292px] w-full" />
@@ -237,7 +247,10 @@ function AmbitoCard({ kpis }: { kpis: ComprasKpis | undefined }) {
                 />
               </PieChart>
             </ResponsiveContainer>
-            <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+            <div
+              data-chart-overlay
+              className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center"
+            >
               <span className="text-[10px] uppercase tracking-wide text-slate-400">
                 Total
               </span>
@@ -248,7 +261,7 @@ function AmbitoCard({ kpis }: { kpis: ComprasKpis | undefined }) {
             </div>
           </div>
 
-          <ul className="mt-4 space-y-2">
+          <ul data-chart-export-footer className="mt-4 space-y-2">
             {data.map((row) => {
               const pct = total > 0 ? (row.value * 100) / total : null
               return (
@@ -270,7 +283,7 @@ function AmbitoCard({ kpis }: { kpis: ComprasKpis | undefined }) {
               )
             })}
           </ul>
-          <p className="mt-3 border-t border-slate-100 pt-2 text-[10px] text-slate-400">
+          <p data-chart-export-footer className="mt-3 border-t border-slate-100 pt-2 text-[10px] text-slate-400">
             Clasificación por proveedor: {formatNumber(kpis.proveedores)} proveedores
             en total.
           </p>
@@ -289,10 +302,15 @@ function CategoriasCard({ query }: { query: QuerySlice<CompraCategoria[]> }) {
       subtitle="Participación del importe comprado"
       bodyClassName="p-4 pt-2"
       actions={
-        <span className="inline-flex items-center gap-1.5 text-[11px] text-slate-500">
-          <Tags className="size-3.5" />
-          {formatNumber(data.length)}
-        </span>
+        <>
+          <span className="inline-flex items-center gap-1.5 text-[11px] text-slate-500">
+            <Tags className="size-3.5" />
+            {formatNumber(data.length)}
+          </span>
+          {data.length > 0 && (
+            <ChartDownloadButton fileName="top-categorias-compras" />
+          )}
+        </>
       }
     >
       {query.isLoading ? (
@@ -346,10 +364,15 @@ function ProveedoresCard({
       className="xl:col-span-2"
       bodyClassName="p-4 pt-2"
       actions={
-        <span className="inline-flex items-center gap-1.5 text-[11px] text-slate-500">
-          <Building2 className="size-3.5" />
-          {formatNumber(data.length)}
-        </span>
+        <>
+          <span className="inline-flex items-center gap-1.5 text-[11px] text-slate-500">
+            <Building2 className="size-3.5" />
+            {formatNumber(data.length)}
+          </span>
+          {data.length > 0 && (
+            <ChartDownloadButton fileName="top-proveedores-compras" />
+          )}
+        </>
       }
     >
       {query.isLoading ? (

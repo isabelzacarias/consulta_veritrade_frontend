@@ -39,6 +39,7 @@ import {
   formatSignedPp,
 } from '@/lib/format'
 import { SectionCard } from '@/components/ui/SectionCard'
+import { ChartDownloadButton } from '@/components/ui/ChartDownloadButton'
 import { Combobox2 } from '@/components/ui/Combobox2'
 import { Segmented } from '@/components/ui/Segmented'
 import { EmptyState, ErrorState, Skeleton } from '@/components/ui/States'
@@ -396,6 +397,11 @@ export function ComparativoTab({
                   : 'Cambio de cantidad contra el mes anterior'
             }
             bodyClassName="p-4 pt-4"
+            actions={
+              chartData.length > 0 ? (
+                <ChartDownloadButton fileName="diferencia-absoluta-compras" />
+              ) : null
+            }
           >
             {chartData.length === 0 ? (
               <EmptyState
