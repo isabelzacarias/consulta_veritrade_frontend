@@ -8,6 +8,7 @@ import {
 } from '@tanstack/react-query'
 import {
   BarChart3,
+  Building2,
   ChartLine,
   Database,
   GitCompareArrows,
@@ -31,10 +32,12 @@ import { ComprasCharts } from '@/features/compras/components/ComprasCharts'
 import { ComprasTable } from '@/features/compras/components/ComprasTable'
 import { ComparativoTab } from '@/features/compras/tabs/ComparativoTab'
 import { PreciosTab } from '@/features/compras/tabs/PreciosTab'
+import { ProveedoresTab } from '@/features/compras/tabs/ProveedoresTab'
 import { ImportComprasDialog } from '@/features/compras/dialogs/ImportComprasDialog'
 
 const TABS: Array<{ id: ComprasTab; label: string; icon: LucideIcon }> = [
   { id: 'graficas', label: 'Gráficas', icon: BarChart3 },
+  { id: 'proveedores', label: 'Proveedores', icon: Building2 },
   { id: 'precios', label: 'Precios', icon: ChartLine },
   { id: 'comparativo', label: 'Comparativo', icon: GitCompareArrows },
   { id: 'tabla', label: 'Tabla', icon: Table2 },
@@ -131,6 +134,13 @@ export function ComprasPage() {
 
   const setActiveTab = (tab: ComprasTab) => {
     setSearchParams(comprasSearchParams(filters, tab))
+  }
+
+  const analyzeProvider = (provider: string) => {
+    setSearchParams(
+      comprasSearchParams({ ...filters, proveedor: [provider] }, 'proveedores'),
+    )
+    setPage(1)
   }
 
   const refresh = () => {
@@ -258,6 +268,14 @@ export function ComprasPage() {
             categorias={categorias}
             proveedores={proveedores}
             kpis={kpis.data}
+            onAnalyzeProvider={analyzeProvider}
+          />
+        )}
+
+        {activeTab === 'proveedores' && (
+          <ProveedoresTab
+            filters={filters}
+            onShowPurchases={() => setActiveTab('tabla')}
           />
         )}
 

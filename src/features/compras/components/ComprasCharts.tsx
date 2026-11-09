@@ -51,6 +51,7 @@ interface ComprasChartsProps {
   categorias: QuerySlice<CompraCategoria[]>
   proveedores: QuerySlice<CompraProveedor[]>
   kpis: ComprasKpis | undefined
+  onAnalyzeProvider: (provider: string) => void
 }
 
 export function ComprasCharts({
@@ -58,13 +59,17 @@ export function ComprasCharts({
   categorias,
   proveedores,
   kpis,
+  onAnalyzeProvider,
 }: ComprasChartsProps) {
   return (
     <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
       <MonthlyCard query={mensual} />
       <AmbitoCard kpis={kpis} />
       <CategoriasCard query={categorias} />
-      <ProveedoresCard query={proveedores} />
+      <ProveedoresCard
+        query={proveedores}
+        onAnalyzeProvider={onAnalyzeProvider}
+      />
     </div>
   )
 }
@@ -325,7 +330,13 @@ function CategoriasCard({ query }: { query: QuerySlice<CompraCategoria[]> }) {
   )
 }
 
-function ProveedoresCard({ query }: { query: QuerySlice<CompraProveedor[]> }) {
+function ProveedoresCard({
+  query,
+  onAnalyzeProvider,
+}: {
+  query: QuerySlice<CompraProveedor[]>
+  onAnalyzeProvider: (provider: string) => void
+}) {
   const data = query.data ?? []
 
   return (
@@ -379,6 +390,14 @@ function ProveedoresCard({ query }: { query: QuerySlice<CompraProveedor[]> }) {
                   {row.ambito === 'internacional' ? 'Internacional' : 'Nacional'}
                 </span>
                 {formatNumber(row.registros)} compras
+                <button
+                  type="button"
+                  onClick={() => onAnalyzeProvider(row.proveedor)}
+                  aria-label={`Analizar compras de ${row.proveedor}`}
+                  className="ml-1 font-medium text-brand-700 underline-offset-2 transition hover:text-brand-900 hover:underline focus:outline-none focus-visible:rounded-sm focus-visible:ring-2 focus-visible:ring-brand-500"
+                >
+                  Analizar
+                </button>
               </span>
             ),
           }))}

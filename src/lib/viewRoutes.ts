@@ -36,6 +36,7 @@ const IMPORTACIONES_TABS: readonly ImportacionesTab[] = [
 
 const COMPRAS_TABS: readonly ComprasTab[] = [
   'graficas',
+  'proveedores',
   'precios',
   'comparativo',
   'tabla',

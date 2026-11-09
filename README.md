@@ -35,12 +35,19 @@ importaciones en pestañas:
 
 `src/features/compras/ComprasPage.tsx` es el módulo independiente de compras por
 artículo (HORBIS INNOTRADE). Filtros y KPIs son comunes; el detalle se separa en
-cuatro pestañas:
+cinco pestañas:
 
 - **KPIs:** importe total MXN, compras, proveedores, participación internacional,
   compras nacionales/internacionales, categorías y fracciones válidas.
 - **Gráficas:** evolución mensual, nacional vs internacional, top categorías y top
-  proveedores.
+  proveedores; desde cada proveedor se puede abrir su análisis detallado.
+- **Proveedores:** análisis basado en los filtros generales aplicados: KPIs,
+  evolución mensual por ámbito, comparación de importe entre proveedores y
+  comparación anual de compras por mes. La comparación anual marca los festivos
+  oficiales de México y Semana Santa en sus fechas correspondientes por año; se
+  pueden seleccionar las fechas a señalar y agregar fechas personalizadas que se
+  repiten en cada año comparado. También muestra categorías, principales
+  artículos y acceso a la tabla de compras individuales.
 - **Precios:** precio promedio anual por producto ponderado por cantidad, con tabla
   top 100 y evolución mensual del producto seleccionado.
 - **Comparativo:** comparación entre dos meses calendario por descripción, categoría
