@@ -1,5 +1,6 @@
 import type {
   AnalisisMetric,
+  AduanaRow,
   ComparativoDimension,
   ComparativoOrder,
   ComparativoResult,
@@ -63,6 +64,18 @@ export const importacionesApi = {
     request<Page<MensualRow>>('/reportes/mensual', { ...filters, page_size: 120 }, {
       signal,
     }),
+
+  rankingAduanas: (
+    filters: Filters,
+    top = 20,
+    orderBy: OrderBy = 'valor_usd',
+    signal?: AbortSignal,
+  ) =>
+    request<Page<AduanaRow>>(
+      '/reportes/aduanas',
+      rankingParams(filters, top, orderBy),
+      { signal },
+    ),
 
   paisesOrigen: (filters: Filters, top = 8, signal?: AbortSignal) =>
     request<Page<PaisOrigenRow>>(

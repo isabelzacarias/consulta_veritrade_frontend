@@ -18,6 +18,11 @@ import {
 import type { ComprasFilters, ComprasOrder, ComprasTab } from '@/types/compras'
 import { api } from '@/services/api'
 import { formatNumber } from '@/lib/format'
+import {
+  countFilterValues,
+  hasFilterChanges,
+  removeFilterValue,
+} from '@/lib/filters'
 import { comprasSearchParams, parseComprasRoute } from '@/lib/viewRoutes'
 import { AppHeader } from '@/components/layout/AppHeader'
 import { ComprasFilters as ComprasFilterBar } from '@/features/compras/components/ComprasFilters'
@@ -51,6 +56,7 @@ export function ComprasPage() {
   const [orderBy, setOrderBy] = useState<ComprasOrder>('fecha')
   const [desc, setDesc] = useState(true)
   const [importOpen, setImportOpen] = useState(false)
+  const dirty = hasFilterChanges(draft, filters)
 
   useEffect(() => {
     if (lastFiltersKey.current !== filtersKey) {
@@ -101,7 +107,7 @@ export function ComprasPage() {
     placeholderData: keepPreviousData,
   })
 
-  const activeCount = Object.values(filters).filter(Boolean).length
+  const activeCount = countFilterValues(filters)
   const isRefreshing =
     useIsFetching({ predicate: (query) => query.queryKey[0] === 'compras' }) > 0
 
@@ -113,6 +119,13 @@ export function ComprasPage() {
   const clearFilters = () => {
     setDraft({})
     setSearchParams(comprasSearchParams({}, activeTab))
+    setPage(1)
+  }
+
+  const removeFilter = (field: string, value?: string) => {
+    const next = removeFilterValue(draft, field, value)
+    setDraft(next)
+    setSearchParams(comprasSearchParams(next, activeTab))
     setPage(1)
   }
 
@@ -156,10 +169,6 @@ export function ComprasPage() {
             <h1 className="text-xl font-semibold tracking-tight text-slate-900">
               Panel de compras
             </h1>
-            <p className="mt-0.5 text-xs text-slate-500">
-              Compras por artículo de HORBIS INNOTRADE, con clasificación nacional
-              e internacional y todos los importes en MXN.
-            </p>
           </div>
           {lastUpdated && (
             <p className="text-[11px] text-slate-400">
@@ -197,12 +206,15 @@ export function ComprasPage() {
 
         <ComprasFilterBar
           draft={draft}
+          filters={filters}
           onChange={setDraft}
           onApply={applyFilters}
           onClear={clearFilters}
+          onRemoveFilter={removeFilter}
           meta={meta.data}
           activeCount={activeCount}
           loading={isRefreshing}
+          dirty={dirty}
         />
 
         <ComprasKpis

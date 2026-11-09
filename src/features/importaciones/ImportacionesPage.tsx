@@ -10,6 +10,7 @@ import {
   Database,
   GitCompareArrows,
   Grid3X3,
+  Landmark,
   LayoutDashboard,
   MessageCircleQuestion,
   PackageSearch,
@@ -23,6 +24,11 @@ import type { Filters, ImportacionesTab } from '@/types/importaciones'
 import { api } from '@/services/api'
 import { formatNumber } from '@/lib/format'
 import {
+  countFilterValues,
+  hasFilterChanges,
+  removeFilterValue,
+} from '@/lib/filters'
+import {
   importacionesSearchParams,
   parseImportacionesRoute,
 } from '@/lib/viewRoutes'
@@ -30,6 +36,7 @@ import { FilterBar } from '@/features/importaciones/components/FilterBar'
 import { KpisSection } from '@/features/importaciones/components/KpisSection'
 import { UploadDialog } from '@/features/importaciones/dialogs/UploadDialog'
 import { ResumenTab } from '@/features/importaciones/tabs/ResumenTab'
+import { AduanasTab } from '@/features/importaciones/tabs/AduanasTab'
 import { ImportadoresTab } from '@/features/importaciones/tabs/ImportadoresTab'
 import { ProveedoresTab } from '@/features/importaciones/tabs/ProveedoresTab'
 import { ProductosTab } from '@/features/importaciones/tabs/ProductosTab'
@@ -41,6 +48,7 @@ import { AppHeader } from '@/components/layout/AppHeader'
 
 const TABS: Array<{ id: ImportacionesTab; label: string; icon: LucideIcon }> = [
   { id: 'resumen', label: 'Resumen', icon: LayoutDashboard },
+  { id: 'aduanas', label: 'Aduanas', icon: Landmark },
   { id: 'importadores', label: 'Importadores', icon: Users },
   { id: 'proveedores', label: 'Proveedores', icon: Ship },
   { id: 'productos', label: 'Productos y costos', icon: PackageSearch },
@@ -62,6 +70,7 @@ export function ImportacionesPage() {
   const filtersKey = JSON.stringify(filters)
   const lastFiltersKey = useRef(filtersKey)
   const [uploadOpen, setUploadOpen] = useState(false)
+  const dirty = hasFilterChanges(draft, filters)
 
   useEffect(() => {
     if (lastFiltersKey.current !== filtersKey) {
@@ -94,7 +103,7 @@ export function ImportacionesPage() {
     placeholderData: keepPreviousData,
   })
 
-  const activeCount = Object.values(filters).filter(Boolean).length
+  const activeCount = countFilterValues(filters)
 
   const isRefreshing =
     useIsFetching({
@@ -108,6 +117,12 @@ export function ImportacionesPage() {
   const clearFilters = () => {
     setDraft({})
     setSearchParams(importacionesSearchParams({}, activeTab))
+  }
+
+  const removeFilter = (field: string, value?: string) => {
+    const next = removeFilterValue(draft, field, value)
+    setDraft(next)
+    setSearchParams(importacionesSearchParams(next, activeTab))
   }
 
   const setActiveTab = (tab: ImportacionesTab) => {
@@ -150,10 +165,7 @@ export function ImportacionesPage() {
             <h1 className="text-xl font-semibold tracking-tight text-slate-900">
               Panel de importaciones
             </h1>
-            <p className="mt-0.5 text-xs text-slate-500">
-              Importadores, proveedores, costos y productos conectados directamente a
-              la API de Veritrade.
-            </p>
+
           </div>
           {lastUpdated && (
             <p className="text-[11px] text-slate-400">
@@ -191,14 +203,17 @@ export function ImportacionesPage() {
 
         <FilterBar
           draft={draft}
+          filters={filters}
           onChange={setDraft}
           onApply={applyFilters}
           onClear={clearFilters}
+          onRemoveFilter={removeFilter}
           aduanas={aduanas.data ?? []}
           paises={paises.data ?? []}
           partidas={partidas.data ?? []}
           activeCount={activeCount}
           loading={isRefreshing}
+          dirty={dirty}
         />
 
         <KpisSection
@@ -237,6 +252,9 @@ export function ImportacionesPage() {
         </nav>
 
         {activeTab === 'resumen' && <ResumenTab filters={filters} />}
+        {activeTab === 'aduanas' && (
+          <AduanasTab key={`aduanas-${filtersKey}`} filters={filters} />
+        )}
         {activeTab === 'importadores' && <ImportadoresTab filters={filters} />}
         {activeTab === 'proveedores' && <ProveedoresTab filters={filters} />}
         {activeTab === 'productos' && (

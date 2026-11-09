@@ -28,11 +28,11 @@ export type ComprasComparativoEstado =
 export interface ComprasFilters {
   fecha_desde?: string
   fecha_hasta?: string
-  categoria?: string
-  proveedor?: string
-  descripcion?: string
-  ambito?: AmbitoCompra
-  fraccion?: string
+  categoria?: string[]
+  proveedor?: string[]
+  descripcion?: string[]
+  ambito?: AmbitoCompra[]
+  fraccion?: string[]
   q?: string
 }
 

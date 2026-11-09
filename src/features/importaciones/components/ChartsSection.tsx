@@ -1,22 +1,15 @@
 import {
-  Area,
-  AreaChart,
-  CartesianGrid,
   Cell,
   Pie,
   PieChart,
   ResponsiveContainer,
   Tooltip,
-  XAxis,
-  YAxis,
 } from 'recharts'
 import {
-  BarChart3,
   Building2,
   Globe2,
   PieChart as PieChartIcon,
 } from 'lucide-react'
-import { useState } from 'react'
 import type {
   ImportadorRow,
   MensualRow,
@@ -25,10 +18,6 @@ import type {
 } from '@/types/importaciones'
 import type { Page, QuerySlice } from '@/types/common'
 import {
-  formatKg,
-  formatKgCompact,
-  formatMonthLong,
-  formatMonthShort,
   formatPercent,
   formatUsd,
   formatUsdCompact,
@@ -40,6 +29,7 @@ import {
   ErrorState,
   Skeleton,
 } from '@/components/ui/States'
+import { MonthlyTrendCard } from '@/features/importaciones/components/MonthlyTrendCard'
 
 const CHART_COLORS = [
   '#5b2480',
@@ -58,8 +48,6 @@ const tooltipStyle = {
   boxShadow: '0 10px 30px -12px rgba(15, 23, 42, 0.25)',
   fontSize: 12,
 }
-
-const axisTick = { fill: '#94a3b8', fontSize: 11 }
 
 interface ChartsSectionProps {
   mensual: QuerySlice<Page<MensualRow>>
@@ -80,7 +68,7 @@ export function ChartsSection({
 }: ChartsSectionProps) {
   return (
     <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
-      <MonthlyCard query={mensual} />
+      <MonthlyTrendCard query={mensual} />
       <TipoCard
         query={tipos}
         soloPrincipales={soloPrincipales}
@@ -89,110 +77,6 @@ export function ChartsSection({
       <PaisesCard query={paises} />
       <ImportadoresCard query={importadores} />
     </div>
-  )
-}
-
-function MonthlyCard({ query }: { query: QuerySlice<Page<MensualRow>> }) {
-  const [metric, setMetric] = useState<'valor_usd' | 'volumen_kg'>('valor_usd')
-  const data = (query.data?.items ?? []).filter(
-    (row): row is MensualRow & { mes: string } => Boolean(row.mes),
-  )
-
-  return (
-    <SectionCard
-      title="Evolución mensual"
-      subtitle="Valor importado y volumen por mes"
-      className="xl:col-span-3"
-      actions={
-        <div className="flex rounded-lg border border-slate-200 bg-slate-50 p-0.5">
-          {[
-            { key: 'valor_usd', label: 'Valor USD' },
-            { key: 'volumen_kg', label: 'Volumen kg' },
-          ].map((option) => (
-            <button
-              key={option.key}
-              type="button"
-              onClick={() =>
-                setMetric(option.key as 'valor_usd' | 'volumen_kg')
-              }
-              className={`rounded-md px-2.5 py-1 text-[11px] font-medium transition ${
-                metric === option.key
-                  ? 'bg-white text-slate-900 shadow-sm'
-                  : 'text-slate-500 hover:text-slate-700'
-              }`}
-            >
-              {option.label}
-            </button>
-          ))}
-        </div>
-      }
-      bodyClassName="p-4 pt-5"
-    >
-      {query.isLoading ? (
-        <Skeleton className="h-[272px] w-full" />
-      ) : query.isError ? (
-        <ErrorState message={query.error?.message ?? 'Error desconocido'} onRetry={query.refetch} />
-      ) : data.length === 0 ? (
-        <EmptyState
-          icon={BarChart3}
-          title="Sin serie mensual"
-          description="No hay operaciones para los filtros seleccionados."
-          className="py-20"
-        />
-      ) : (
-        <div className="h-[272px] w-full">
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={data} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
-              <defs>
-                <linearGradient id="monthlyFill" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#5b2480" stopOpacity={0.3} />
-                  <stop offset="100%" stopColor="#5b2480" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid stroke="#e2e8f0" strokeDasharray="3 3" vertical={false} />
-              <XAxis
-                dataKey="mes"
-                tickFormatter={(value) => formatMonthShort(String(value))}
-                tick={axisTick}
-                axisLine={false}
-                tickLine={false}
-                minTickGap={18}
-              />
-              <YAxis
-                tickFormatter={(value) =>
-                  metric === 'valor_usd'
-                    ? formatUsdCompact(Number(value))
-                    : formatKgCompact(Number(value))
-                }
-                tick={axisTick}
-                axisLine={false}
-                tickLine={false}
-                width={64}
-              />
-              <Tooltip
-                contentStyle={tooltipStyle}
-                labelFormatter={(label) => formatMonthLong(String(label))}
-                formatter={(value) => [
-                  metric === 'valor_usd'
-                    ? formatUsd(Number(value))
-                    : formatKg(Number(value)),
-                  metric === 'valor_usd' ? 'Valor USD' : 'Volumen',
-                ]}
-              />
-              <Area
-                type="monotone"
-                dataKey={metric}
-                stroke="#5b2480"
-                strokeWidth={2.25}
-                fill="url(#monthlyFill)"
-                activeDot={{ r: 4, strokeWidth: 2, stroke: '#fff' }}
-                isAnimationActive={false}
-              />
-            </AreaChart>
-          </ResponsiveContainer>
-        </div>
-      )}
-    </SectionCard>
   )
 }
 

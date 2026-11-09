@@ -16,6 +16,7 @@ type Scope = 'mexico' | 'cancun'
 export function ImportadoresTab({ filters }: { filters: Filters }) {
   const [scope, setScope] = useState<Scope>('mexico')
   const [metrica, setMetrica] = useState<RankingMetric>('valor_usd')
+  const filterPartida = filters.partida?.[0]
 
   const ranking = useQuery({
     queryKey: ['importadores-ranking', filters, scope, metrica],
@@ -30,7 +31,7 @@ export function ImportadoresTab({ filters }: { filters: Filters }) {
     queryKey: ['peso-producto', filters],
     queryFn: ({ signal }) =>
       api.importadores(filters, 10, 'volumen_kg', signal),
-    enabled: Boolean(filters.partida),
+    enabled: Boolean(filterPartida),
     placeholderData: keepPreviousData,
   })
 
@@ -201,13 +202,13 @@ export function ImportadoresTab({ filters }: { filters: Filters }) {
       <SectionCard
         title="Peso por producto"
         subtitle={
-          filters.partida
-            ? `Participación de kg por importador en la partida ${filters.partida}`
+          filterPartida
+            ? `Participación de kg por importador en la partida ${filterPartida}`
             : 'Selecciona una partida para analizar su distribución de peso'
         }
         bodyClassName="p-4 pt-2"
       >
-        {!filters.partida ? (
+        {!filterPartida ? (
           <EmptyState
             icon={PackageSearch}
             title="Falta seleccionar una partida"

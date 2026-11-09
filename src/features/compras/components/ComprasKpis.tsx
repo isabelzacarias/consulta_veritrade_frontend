@@ -77,17 +77,17 @@ export function ComprasKpis({
 
   if (isLoading && !kpis) {
     return (
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {Array.from({ length: 4 }).map((_, index) => (
           <div
             key={index}
-            className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm"
+            className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm"
           >
             <div className="flex items-center justify-between">
               <Skeleton className="h-3 w-24" />
-              <Skeleton className="size-9 rounded-xl" />
+              <Skeleton className="size-8 rounded-xl" />
             </div>
-            <Skeleton className="mt-4 h-7 w-36" />
+            <Skeleton className="mt-3 h-6 w-36" />
             <Skeleton className="mt-2 h-3 w-24" />
           </div>
         ))}
@@ -164,29 +164,29 @@ export function ComprasKpis({
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {cards.map((card) => {
           const Icon = card.icon
           const style = cardStyles[card.tone]
           return (
             <article
               key={card.label}
-              className={`rounded-2xl border p-5 shadow-sm shadow-slate-900/5 transition hover:-translate-y-0.5 hover:shadow-lg ${style.card}`}
+              className={`rounded-2xl border p-4 shadow-sm shadow-slate-900/5 transition hover:-translate-y-0.5 hover:shadow-lg ${style.card}`}
             >
               <div className="flex items-start justify-between gap-3">
                 <p className={`text-xs font-semibold ${style.label}`}>
                   {card.label}
                 </p>
                 <span
-                  className={`grid size-10 shrink-0 place-items-center rounded-xl ${style.icon}`}
+                  className={`grid size-9 shrink-0 place-items-center rounded-xl ${style.icon}`}
                 >
-                  <Icon className="size-5" />
+                  <Icon className="size-4" />
                 </span>
               </div>
-              <p className="mt-3 text-2xl font-semibold tracking-tight text-slate-900 tabular-nums">
+              <p className="mt-2 text-xl font-semibold tracking-tight text-slate-900 tabular-nums">
                 {card.value}
               </p>
-              <p className={`mt-1 text-[11px] ${style.hint}`}>{card.hint}</p>
+              <p className={`mt-1 text-[10px] ${style.hint}`}>{card.hint}</p>
             </article>
           )
         })}
@@ -198,15 +198,15 @@ export function ComprasKpis({
           return (
             <div
               key={item.label}
-              className="flex items-center gap-3 bg-white px-4 py-3.5"
+              className="flex items-center gap-2.5 bg-white px-3 py-2.5"
             >
               <span
-                className={`grid size-8 shrink-0 place-items-center rounded-lg ${item.iconClass}`}
+                className={`grid size-7 shrink-0 place-items-center rounded-lg ${item.iconClass}`}
               >
-                <Icon className="size-4" />
+                <Icon className="size-3.5" />
               </span>
               <div className="min-w-0">
-                <p className="text-[11px] text-slate-500">{item.label}</p>
+                <p className="text-[10px] text-slate-500">{item.label}</p>
                 <p className="text-sm font-semibold text-slate-900 tabular-nums">
                   {item.value}
                 </p>

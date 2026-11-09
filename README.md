@@ -14,6 +14,8 @@ importaciones en pestañas:
 
 - **Resumen:** KPIs, evolución mensual, tipo de importación (agrupado o detalle),
   países de origen y top de importadores.
+- **Aduanas:** ranking por valor o volumen, concentración, ficha de la aduana
+  seleccionada, evolución mensual y detalle de países, importadores y partidas.
 - **Importadores:** ranking por valor o volumen, alcance México/Cancún, Pareto de
   concentración, costo unitario y peso por producto.
 - **Proveedores:** ranking con % del total, concentración, costos y detalle
@@ -49,6 +51,18 @@ cuatro pestañas:
 - **Filtros:** fecha, categoría, ámbito, proveedor, artículo exacto, fracción y búsqueda.
 - **Importación CSV:** carga desde la interfaz (`POST /compras/importar`) con modo
   reemplazar/agregar.
+
+### Panel unificado de filtros
+
+Importaciones y Compras comparten `src/components/ui/UnifiedFilterPanel.tsx`:
+un único botón **Filtros** abre un popover anclado con las secciones de filtros
+en tabs laterales, incluyendo fechas, búsqueda y controles multi-selección
+(aduana, país y partida en Importaciones; categoría, proveedor, artículo,
+fracción y ámbito en Compras). Cada valor se envía como
+parámetro repetido y el backend los combina con OR. Los chips permiten quitar
+filtros activos; los campos multi-selección también permiten seleccionar o
+desmarcar todas las opciones, o los resultados visibles cuando hay una búsqueda
+activa. Los cambios se aplican manualmente con el botón principal.
 
 ### Filtros en la URL
 
@@ -178,6 +192,7 @@ import type { Page } from '@/types/common'
 | `GET /health` | Estado de la API y MySQL |
 | `GET /meta/{aduanas,paises,partidas}` | Opciones de los filtros |
 | `GET /reportes/kpis` | Tarjetas de indicadores |
+| `GET /reportes/aduanas` | Ranking y detalle de aduanas |
 | `GET /reportes/mensual` | Serie mensual |
 | `GET /reportes/tipo-importacion` | Dona de regímenes (`solo_principales`) |
 | `GET /reportes/paises-origen` | Ranking de países |

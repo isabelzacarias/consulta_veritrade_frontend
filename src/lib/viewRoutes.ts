@@ -24,6 +24,7 @@ export const COMPRAS_FILTER_KEYS = [
 
 const IMPORTACIONES_TABS: readonly ImportacionesTab[] = [
   'resumen',
+  'aduanas',
   'importadores',
   'proveedores',
   'productos',
@@ -45,6 +46,30 @@ function read(searchParams: URLSearchParams, key: string): string | undefined {
   return value || undefined
 }
 
+function readAll(
+  searchParams: URLSearchParams,
+  key: string,
+): string[] | undefined {
+  const values = searchParams
+    .getAll(key)
+    .map((value) => value.trim())
+    .filter(Boolean)
+  return values.length > 0 ? values : undefined
+}
+
+function asString(value: string | string[] | undefined): string | undefined {
+  if (Array.isArray(value)) return value[0]
+  return value
+}
+
+function asArray(value: string | string[] | undefined): string[] | undefined {
+  if (Array.isArray(value)) {
+    const values = value.filter(Boolean)
+    return values.length > 0 ? values : undefined
+  }
+  return value ? [value] : undefined
+}
+
 function isImportacionesTab(value: string | undefined): value is ImportacionesTab {
   return value !== undefined && IMPORTACIONES_TABS.includes(value as ImportacionesTab)
 }
@@ -56,7 +81,13 @@ function isComprasTab(value: string | undefined): value is ComprasTab {
 function buildSearchParams(filters: object, tab: string): URLSearchParams {
   const params = new URLSearchParams()
   for (const [key, value] of Object.entries(filters)) {
-    if (typeof value === 'string' && value) params.set(key, value)
+    if (Array.isArray(value)) {
+      for (const item of value) {
+        if (typeof item === 'string' && item) params.append(key, item)
+      }
+    } else if (typeof value === 'string' && value) {
+      params.set(key, value)
+    }
   }
   params.set('tab', tab)
   return params
@@ -69,9 +100,9 @@ export function parseImportacionesRoute(searchParams: URLSearchParams): {
   const filters: Filters = {
     fecha_desde: read(searchParams, 'fecha_desde'),
     fecha_hasta: read(searchParams, 'fecha_hasta'),
-    aduana: read(searchParams, 'aduana'),
-    pais_origen: read(searchParams, 'pais_origen'),
-    partida: read(searchParams, 'partida'),
+    aduana: readAll(searchParams, 'aduana'),
+    pais_origen: readAll(searchParams, 'pais_origen'),
+    partida: readAll(searchParams, 'partida'),
     importador: read(searchParams, 'importador'),
     exportador: read(searchParams, 'exportador'),
   }
@@ -89,16 +120,18 @@ export function parseComprasRoute(searchParams: URLSearchParams): {
   filters: ComprasFilters
   tab: ComprasTab
 } {
-  const ambito = read(searchParams, 'ambito')
+  const ambitos = readAll(searchParams, 'ambito')?.filter(
+    (ambito): ambito is 'nacional' | 'internacional' =>
+      ambito === 'nacional' || ambito === 'internacional',
+  )
   const filters: ComprasFilters = {
     fecha_desde: read(searchParams, 'fecha_desde'),
     fecha_hasta: read(searchParams, 'fecha_hasta'),
-    categoria: read(searchParams, 'categoria'),
-    proveedor: read(searchParams, 'proveedor'),
-    descripcion: read(searchParams, 'descripcion'),
-    ambito:
-      ambito === 'nacional' || ambito === 'internacional' ? ambito : undefined,
-    fraccion: read(searchParams, 'fraccion'),
+    categoria: readAll(searchParams, 'categoria'),
+    proveedor: readAll(searchParams, 'proveedor'),
+    descripcion: readAll(searchParams, 'descripcion'),
+    ambito: ambitos && ambitos.length > 0 ? ambitos : undefined,
+    fraccion: readAll(searchParams, 'fraccion'),
     q: read(searchParams, 'q'),
   }
   for (const key of COMPRAS_FILTER_KEYS) {
@@ -143,18 +176,18 @@ export function buildComprasUrl(
 
 export function buildViewUrl(
   modulo: 'importaciones' | 'compras',
-  filtros: Record<string, string>,
+  filtros: Record<string, string | string[] | undefined>,
   tab?: string | null,
 ): string | null {
   if (modulo === 'importaciones') {
     const filters: Filters = {
-      fecha_desde: filtros.fecha_desde,
-      fecha_hasta: filtros.fecha_hasta,
-      aduana: filtros.aduana,
-      pais_origen: filtros.pais_origen,
-      partida: filtros.partida,
-      importador: filtros.importador,
-      exportador: filtros.exportador,
+      fecha_desde: asString(filtros.fecha_desde),
+      fecha_hasta: asString(filtros.fecha_hasta),
+      aduana: asArray(filtros.aduana),
+      pais_origen: asArray(filtros.pais_origen),
+      partida: asArray(filtros.partida),
+      importador: asString(filtros.importador),
+      exportador: asString(filtros.exportador),
     }
     const candidate = tab ?? undefined
     const nextTab = isImportacionesTab(candidate) ? candidate : 'resumen'
@@ -162,17 +195,19 @@ export function buildViewUrl(
   }
 
   if (modulo === 'compras') {
-    const ambito = filtros.ambito
+    const ambitos = asArray(filtros.ambito)?.filter(
+      (ambito): ambito is 'nacional' | 'internacional' =>
+        ambito === 'nacional' || ambito === 'internacional',
+    )
     const filters: ComprasFilters = {
-      fecha_desde: filtros.fecha_desde,
-      fecha_hasta: filtros.fecha_hasta,
-      categoria: filtros.categoria,
-      proveedor: filtros.proveedor,
-      descripcion: filtros.descripcion,
-      ambito:
-        ambito === 'nacional' || ambito === 'internacional' ? ambito : undefined,
-      fraccion: filtros.fraccion,
-      q: filtros.q,
+      fecha_desde: asString(filtros.fecha_desde),
+      fecha_hasta: asString(filtros.fecha_hasta),
+      categoria: asArray(filtros.categoria),
+      proveedor: asArray(filtros.proveedor),
+      descripcion: asArray(filtros.descripcion),
+      ambito: ambitos && ambitos.length > 0 ? ambitos : undefined,
+      fraccion: asArray(filtros.fraccion),
+      q: asString(filtros.q),
     }
     const candidate = tab ?? undefined
     const nextTab = isComprasTab(candidate) ? candidate : 'graficas'

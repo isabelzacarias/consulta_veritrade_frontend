@@ -27,9 +27,10 @@ export function ProductosTab({ filters }: { filters: Filters }) {
   })
 
   const partidasRows = partidas.data?.items ?? []
+  const filterPartida = filters.partida?.[0]
   const selectedPartida =
     manualPartida ??
-    filters.partida ??
+    filterPartida ??
     partidasRows[0]?.partida_arancelaria ??
     null
 
@@ -42,7 +43,7 @@ export function ProductosTab({ filters }: { filters: Filters }) {
     queryKey: ['peso-partida', filters, selectedPartida],
     queryFn: ({ signal }) =>
       api.importadores(
-        { ...filters, partida: selectedPartida ?? undefined },
+        { ...filters, partida: selectedPartida ? [selectedPartida] : undefined },
         10,
         'volumen_kg',
         signal,

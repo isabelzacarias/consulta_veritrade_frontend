@@ -7,9 +7,9 @@ export interface Health {
 export interface Filters {
   fecha_desde?: string
   fecha_hasta?: string
-  aduana?: string
-  pais_origen?: string
-  partida?: string
+  aduana?: string[]
+  pais_origen?: string[]
+  partida?: string[]
   importador?: string
   exportador?: string
 }
@@ -51,6 +51,10 @@ export interface ProveedorPaisRow extends ProveedorRow {
 
 export interface PaisOrigenRow extends BaseRankingRow {
   pais_origen: string | null
+}
+
+export interface AduanaRow extends BaseRankingRow {
+  aduana: string | null
 }
 
 export interface TipoImportacionRow extends BaseRankingRow {
@@ -245,6 +249,7 @@ export interface MatrizResult {
 
 export type ImportacionesTab =
   | 'resumen'
+  | 'aduanas'
   | 'importadores'
   | 'proveedores'
   | 'productos'

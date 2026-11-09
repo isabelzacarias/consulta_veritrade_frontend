@@ -9,7 +9,13 @@ export const API_BASE = (import.meta.env.VITE_API_URL?.trim() || '/api').replace
   '',
 )
 
-type QueryValue = string | number | boolean | null | undefined
+type QueryValue =
+  | string
+  | number
+  | boolean
+  | null
+  | undefined
+  | Array<string | number>
 export type QueryParams = Record<string, QueryValue>
 
 export function buildQuery(params?: object): string {
@@ -17,7 +23,18 @@ export function buildQuery(params?: object): string {
 
   const search = new URLSearchParams()
   for (const [key, value] of Object.entries(params)) {
-    if (typeof value !== 'string' && typeof value !== 'number' && typeof value !== 'boolean') {
+    if (Array.isArray(value)) {
+      for (const item of value) {
+        if (item === '' || item == null) continue
+        search.append(key, String(item))
+      }
+      continue
+    }
+    if (
+      typeof value !== 'string' &&
+      typeof value !== 'number' &&
+      typeof value !== 'boolean'
+    ) {
       continue
     }
     if (value === '') continue
