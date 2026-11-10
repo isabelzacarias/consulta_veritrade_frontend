@@ -144,11 +144,85 @@ Si solo quieres cambiar el destino del proxy de desarrollo (sin tocar el cliente
 VITE_PROXY_TARGET=http://127.0.0.1:8000
 ```
 
-### Docker
+### Docker de desarrollo
 
 `docker compose up` levanta Vite en http://localhost:5173. El contenedor usa
 `network_mode: host` y `VITE_PROXY_TARGET=http://127.0.0.1:8000` para alcanzar el
 backend FastAPI que corre en el host (escuchando en loopback).
+
+Este compose es solo para desarrollo: monta el código y usa HMR. No genera una
+imagen de producción.
+
+## Despliegue en producción
+
+El repositorio no incluye un Dockerfile de producción del frontend. El
+despliegue actual es un build estático servido por Nginx, que además hace de proxy
+hacia la API.
+
+### 1. Generar el build
+
+```bash
+npm ci
+npm run build
+```
+
+El resultado queda en `dist/`. Si defines `VITE_API_URL`, hazlo antes del build:
+Vite la incorpora en tiempo de compilación, no en tiempo de ejecución.
+
+### 2. Servir con Nginx
+
+Copia `dist/` al VPS (por ejemplo, `/var/www/veritrade-frontend`) y usa una
+configuración como esta:
+
+```nginx
+server {
+    listen 443 ssl http2;
+    server_name tu-dominio.com;
+
+    ssl_certificate     /etc/letsencrypt/live/tu-dominio.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/tu-dominio.com/privkey.pem;
+
+    root  /var/www/veritrade-frontend;
+    index index.html;
+
+    # Subidas de Excel/CSV y respuestas largas del agente.
+    client_max_body_size 50m;
+
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    location /api/ {
+        proxy_pass http://veritrade_api:8000/;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 180s;
+    }
+}
+```
+
+- `try_files ... /index.html` es necesario para las rutas de React Router.
+- El slash final de `proxy_pass` elimina `/api/` antes de llamar a FastAPI.
+- Si Nginx corre en el host, usa `http://127.0.0.1:8000/`.
+- Si Nginx corre en Docker, únelo a la red `veritrade_net` y usa
+  `http://veritrade_api:8000/`.
+- La configuración completa con redirección HTTP→HTTPS y TLS está en el README
+  del backend: `../Procesar_veritrade-backend/README.md`.
+
+### 3. Elegir cómo resolver la API
+
+- **Mismo dominio con `/api` (recomendado):** no definas `VITE_API_URL`; el
+  cliente usa `/api` y Nginx lo reenvía al backend.
+- **Dominio separado:** define `VITE_API_URL=https://api.tu-dominio.com` antes del
+  build y agrega ese dominio a `CORS_ORIGINS` en el backend.
+
+### 4. Backend y datos
+
+La API, MySQL, variables de entorno, actualización y respaldos se documentan en
+`../Procesar_veritrade-backend/README.md`.
 
 ## Scripts
 
