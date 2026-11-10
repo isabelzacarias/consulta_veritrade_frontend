@@ -82,13 +82,7 @@ export function getMexicanHolidayMarkers(years: number[]): HolidayMarker[] {
       'Día de la Constitución',
       'official',
     )
-    add(
-      year,
-      3,
-      nthWeekdayOfMonth(year, 3, 1, 3),
-      'Natalicio de Benito Juárez',
-      'official',
-    )
+  
     add(year, 5, 1, 'Día del Trabajo', 'official')
     add(year, 9, 16, 'Día de la Independencia', 'official')
     add(
@@ -100,9 +94,7 @@ export function getMexicanHolidayMarkers(years: number[]): HolidayMarker[] {
     )
     add(year, 12, 25, 'Navidad', 'official')
 
-    if (year >= 2024 && (year - 2024) % 6 === 0) {
-      add(year, 10, 1, 'Transmisión del Poder Ejecutivo', 'official')
-    }
+
 
     const easter = easterSunday(year)
     for (const [offset, name] of [

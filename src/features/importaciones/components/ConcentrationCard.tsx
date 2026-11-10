@@ -22,6 +22,13 @@ interface ConcentrationCardProps<T extends BaseRankingRow> {
   onRetry: () => void
 }
 
+interface ConcentrationPoint {
+  rank: number
+  name: string
+  acumulado: number
+  participacion: number | null
+}
+
 export function ConcentrationCard<T extends BaseRankingRow>({
   rows,
   dimensionKey,
@@ -38,9 +45,16 @@ export function ConcentrationCard<T extends BaseRankingRow>({
         (row as unknown as Record<string, unknown>)[dimensionKey] ?? '—',
       ),
       acumulado: row.pct_acumulado ?? 0,
+      participacion: row.pct_total,
     }))
 
   const last = data[data.length - 1]
+  const rankTicks =
+    data.length <= 8
+      ? data.map((row) => row.rank)
+      : [...new Set([1, 5, 10, 15, data.length])].filter(
+          (rank) => rank <= data.length,
+        )
 
   return (
     <SectionCard
@@ -76,6 +90,8 @@ export function ConcentrationCard<T extends BaseRankingRow>({
                 <CartesianGrid stroke="#e2e8f0" strokeDasharray="3 3" vertical={false} />
                 <XAxis
                   dataKey="rank"
+                  ticks={rankTicks}
+                  interval={0}
                   tick={{ fill: '#94a3b8', fontSize: 11 }}
                   axisLine={false}
                   tickLine={false}
@@ -96,11 +112,24 @@ export function ConcentrationCard<T extends BaseRankingRow>({
                     boxShadow: '0 10px 30px -12px rgba(15, 23, 42, 0.25)',
                     fontSize: 12,
                   }}
-                  labelFormatter={(label) => `Top ${label}`}
-                  formatter={(value) => [
-                    formatPercent(Number(value)),
-                    'Acumulado',
-                  ]}
+                  content={({ active, payload }) => {
+                    if (!active || !payload?.length) return null
+                    const row = payload[0].payload as ConcentrationPoint
+                    return (
+                      <div className="max-w-64 rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-lg text-xs">
+                        <p className="mb-1 truncate font-semibold text-slate-800">
+                          #{row.rank} · {row.name}
+                        </p>
+                        <p className="text-slate-600">
+                          Participación individual:{' '}
+                          {formatPercent(row.participacion)}
+                        </p>
+                        <p className="font-medium text-brand-800">
+                          Acumulado: {formatPercent(row.acumulado)}
+                        </p>
+                      </div>
+                    )
+                  }}
                 />
                 <ReferenceLine
                   y={80}
@@ -119,6 +148,8 @@ export function ConcentrationCard<T extends BaseRankingRow>({
                   stroke="#5b2480"
                   strokeWidth={2.25}
                   fill="url(#concentrationFill)"
+                  dot={{ r: 3, strokeWidth: 1, fill: '#fff' }}
+                  activeDot={{ r: 5, strokeWidth: 2, stroke: '#fff' }}
                   isAnimationActive={false}
                 />
               </AreaChart>
