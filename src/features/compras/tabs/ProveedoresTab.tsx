@@ -7,7 +7,7 @@ import {
   type MouseEvent,
 } from 'react'
 import { createPortal } from 'react-dom'
-import { useQuery } from '@tanstack/react-query'
+import { keepPreviousData, useQueries } from '@tanstack/react-query'
 import {
   Area,
   AreaChart,
@@ -165,36 +165,295 @@ export function ProveedoresTab({
     ? `${formatNumber(selectedProviderCount)} proveedor${selectedProviderCount === 1 ? '' : 'es'} seleccionado${selectedProviderCount === 1 ? '' : 's'}`
     : 'todos los proveedores que coinciden con los filtros generales'
   const comparisonFilters = { ...filters, proveedor: undefined }
-
-  const kpis = useQuery({
-    queryKey: ['compras', 'proveedor-kpis', filters],
-    queryFn: ({ signal }) => api.comprasKpis(filters, signal),
+  const selectedDescriptions = [...new Set(filters.descripcion ?? [])]
+  const descriptionsToQuery =
+    selectedDescriptions.length > 0 ? selectedDescriptions : [undefined]
+  const filtersForDescription = (
+    description: string | undefined,
+    source: ComprasFilters = filters,
+  ): ComprasFilters =>
+    description ? { ...source, descripcion: [description] } : source
+  const kpiQueries = useQueries({
+    queries: descriptionsToQuery.map((description) => ({
+      queryKey: ['compras', 'proveedor-kpis', filters, description],
+      queryFn: ({ signal }) =>
+        api.comprasKpis(filtersForDescription(description), signal),
+      placeholderData: keepPreviousData,
+    })),
+  })
+  const monthlyQueries = useQueries({
+    queries: descriptionsToQuery.map((description) => ({
+      queryKey: ['compras', 'proveedor-mensual', filters, description],
+      queryFn: ({ signal }) =>
+        api.comprasMensual(filtersForDescription(description), signal),
+      placeholderData: keepPreviousData,
+    })),
+  })
+  const categoryQueries = useQueries({
+    queries: descriptionsToQuery.map((description) => ({
+      queryKey: ['compras', 'proveedor-categorias', filters, description],
+      queryFn: ({ signal }) =>
+        api.comprasCategorias(filtersForDescription(description), 500, signal),
+      placeholderData: keepPreviousData,
+    })),
+  })
+  const productQueries = useQueries({
+    queries: descriptionsToQuery.map((description) => ({
+      queryKey: ['compras', 'proveedor-productos', filters, description, 100],
+      queryFn: ({ signal }) =>
+        api.comprasPrecios(
+          filtersForDescription(description),
+          { top: 100 },
+          signal,
+        ),
+      placeholderData: keepPreviousData,
+    })),
+  })
+  const comparisonQueries = useQueries({
+    queries: descriptionsToQuery.map((description) => ({
+      queryKey: [
+        'compras',
+        'proveedor-comparison',
+        comparisonFilters,
+        description,
+      ],
+      queryFn: ({ signal }) =>
+        api.comprasProveedores(
+          filtersForDescription(description, comparisonFilters),
+          500,
+          signal,
+        ),
+      placeholderData: keepPreviousData,
+    })),
+  })
+  const kpiProviderQueries = useQueries({
+    queries: descriptionsToQuery.map((description) => ({
+      queryKey: ['compras', 'proveedor-kpi-count', filters, description],
+      queryFn: ({ signal }) =>
+        api.comprasProveedores(
+          filtersForDescription(description),
+          500,
+          signal,
+        ),
+      enabled: selectedProviderCount > 0,
+      placeholderData: keepPreviousData,
+    })),
   })
 
-  const mensual = useQuery({
-    queryKey: ['compras', 'proveedor-mensual', filters],
-    queryFn: ({ signal }) => api.comprasMensual(filters, signal),
-  })
+  const kpiRows = kpiQueries.flatMap((query) => query.data ?? [])
+  const monthlyRows = monthlyQueries.flatMap((query) => query.data ?? [])
+  const categoryRows = categoryQueries.flatMap((query) => query.data ?? [])
+  const productRows = productQueries.flatMap((query) => query.data ?? [])
+  const comparisonRows = comparisonQueries.flatMap((query) => query.data ?? [])
+  const kpiProviderRows = selectedProviderCount
+    ? kpiProviderQueries.flatMap((query) => query.data ?? [])
+    : comparisonRows
+  const kpisLoading = kpiQueries.some((query) => query.isLoading && !query.data)
+  const kpisError = kpiQueries.find((query) => query.isError && !query.data)
+  const monthlyLoading = monthlyQueries.some(
+    (query) => query.isLoading && !query.data,
+  )
+  const monthlyError = monthlyQueries.find(
+    (query) => query.isError && !query.data,
+  )
+  const categoryLoading = categoryQueries.some(
+    (query) => query.isLoading && !query.data,
+  )
+  const categoryError = categoryQueries.find(
+    (query) => query.isError && !query.data,
+  )
+  const productLoading = productQueries.some(
+    (query) => query.isLoading && !query.data,
+  )
+  const productError = productQueries.find(
+    (query) => query.isError && !query.data,
+  )
+  const comparisonLoading = comparisonQueries.some(
+    (query) => query.isLoading && !query.data,
+  )
+  const comparisonError = comparisonQueries.find(
+    (query) => query.isError && !query.data,
+  )
 
-  const categorias = useQuery({
-    queryKey: ['compras', 'proveedor-categorias', filters],
-    queryFn: ({ signal }) => api.comprasCategorias(filters, 10, signal),
-  })
-
-  const productos = useQuery({
-    queryKey: ['compras', 'proveedor-productos', filters, 100],
-    queryFn: ({ signal }) => api.comprasPrecios(filters, { top: 100 }, signal),
-  })
-
-  const comparison = useQuery({
-    queryKey: ['compras', 'proveedor-comparison', comparisonFilters],
-    queryFn: ({ signal }) =>
-      api.comprasProveedores(comparisonFilters, 500, signal),
-  })
+  const mensualRows = useMemo(() => {
+    const grouped = new Map<
+      string,
+      {
+        mes: string
+        importe_mxn: number
+        importe_nacional_mxn: number
+        importe_internacional_mxn: number
+        registros: number
+        completo: boolean
+      }
+    >()
+    for (const row of monthlyRows) {
+      const current = grouped.get(row.mes)
+      const importe = row.importe_mxn ?? 0
+      const importeInternacional = row.importe_internacional_mxn ?? 0
+      if (current) {
+        current.importe_mxn += importe
+        current.importe_nacional_mxn += row.importe_nacional_mxn ?? 0
+        current.importe_internacional_mxn += importeInternacional
+        current.registros += row.registros
+        current.completo = current.completo && row.completo
+      } else {
+        grouped.set(row.mes, {
+          mes: row.mes,
+          importe_mxn: importe,
+          importe_nacional_mxn: row.importe_nacional_mxn ?? 0,
+          importe_internacional_mxn: importeInternacional,
+          registros: row.registros,
+          completo: row.completo,
+        })
+      }
+    }
+    return [...grouped.values()]
+      .sort((a, b) => a.mes.localeCompare(b.mes))
+      .map((row) => ({
+        ...row,
+        pct_internacional:
+          row.importe_mxn > 0
+            ? (row.importe_internacional_mxn / row.importe_mxn) * 100
+            : null,
+      }))
+  }, [monthlyRows])
+  const categoriasRows = useMemo(() => {
+    const grouped = new Map<
+      string,
+      { categoria: string; importe_mxn: number; registros: number; proveedores: number; importe_internacional_mxn: number }
+    >()
+    for (const row of categoryRows) {
+      const current = grouped.get(row.categoria)
+      const importe = row.importe_mxn ?? 0
+      const importeInternacional =
+        importe * ((row.pct_internacional ?? 0) / 100)
+      if (current) {
+        current.importe_mxn += importe
+        current.registros += row.registros
+        current.proveedores += row.proveedores
+        current.importe_internacional_mxn += importeInternacional
+      } else {
+        grouped.set(row.categoria, {
+          categoria: row.categoria,
+          importe_mxn: importe,
+          registros: row.registros,
+          proveedores: row.proveedores,
+          importe_internacional_mxn: importeInternacional,
+        })
+      }
+    }
+    const total = [...grouped.values()].reduce(
+      (sum, row) => sum + row.importe_mxn,
+      0,
+    )
+    return [...grouped.values()]
+      .map((row) => ({
+        ...row,
+        pct_importe: total > 0 ? (row.importe_mxn / total) * 100 : null,
+        pct_internacional:
+          row.importe_mxn > 0
+            ? (row.importe_internacional_mxn / row.importe_mxn) * 100
+            : null,
+      }))
+      .sort((a, b) => b.importe_mxn - a.importe_mxn)
+      .slice(0, 10)
+  }, [categoryRows])
+  const productosRows = useMemo(() => {
+    const grouped = new Map<
+      string,
+      (typeof productRows)[number]
+    >()
+    for (const row of productRows) {
+      const key = `${row.descripcion}-${row.anio}`
+      const current = grouped.get(key)
+      if (current) {
+        current.importe_mxn += row.importe_mxn
+        current.cantidad += row.cantidad
+        current.registros += row.registros
+        current.proveedores += row.proveedores
+        current.meses = Math.max(current.meses, row.meses)
+      } else {
+        grouped.set(key, { ...row })
+      }
+    }
+    return [...grouped.values()].map((row) => ({
+      ...row,
+      precio_promedio_mxn:
+        row.cantidad > 0 ? row.importe_mxn / row.cantidad : null,
+    }))
+  }, [productRows])
+  const comparisonDataRows = useMemo(() => {
+    const grouped = new Map<string, ProviderComparison>()
+    for (const row of comparisonRows) {
+      const current = grouped.get(row.proveedor)
+      if (current) {
+        current.importe_mxn += row.importe_mxn ?? 0
+        current.registros += row.registros
+      } else {
+        grouped.set(row.proveedor, {
+          proveedor: row.proveedor,
+          importe_mxn: row.importe_mxn ?? 0,
+          pct_importe: 0,
+          registros: row.registros,
+        })
+      }
+    }
+    const total = [...grouped.values()].reduce(
+      (sum, row) => sum + row.importe_mxn,
+      0,
+    )
+    return [...grouped.values()].map((row) => ({
+      ...row,
+      pct_importe: total > 0 ? (row.importe_mxn / total) * 100 : 0,
+    }))
+  }, [comparisonRows])
+  const kpisData = useMemo(() => {
+    if (kpiRows.length === 0) return undefined
+    const total = kpiRows.reduce(
+      (sum, row) => sum + (row.importe_total_mxn ?? 0),
+      0,
+    )
+    const international = kpiRows.reduce(
+      (sum, row) => sum + (row.importe_internacional_mxn ?? 0),
+      0,
+    )
+    const providers = new Set(kpiProviderRows.map((row) => row.proveedor))
+    const dates = kpiRows.flatMap((row) =>
+      [row.fecha_min, row.fecha_max].filter(
+        (value): value is string => value != null,
+      ),
+    )
+    return {
+      ...kpiRows[0],
+      importe_total_mxn: total,
+      registros: kpiRows.reduce((sum, row) => sum + row.registros, 0),
+      proveedores: providers.size,
+      categorias: categoriasRows.length,
+      meses: mensualRows.length,
+      importe_nacional_mxn: kpiRows.reduce(
+        (sum, row) => sum + (row.importe_nacional_mxn ?? 0),
+        0,
+      ),
+      importe_internacional_mxn: international,
+      pct_internacional: total > 0 ? (international / total) * 100 : null,
+      fracciones_validas: kpiRows.reduce(
+        (sum, row) => sum + row.fracciones_validas,
+        0,
+      ),
+      fracciones_invalidas: kpiRows.reduce(
+        (sum, row) => sum + row.fracciones_invalidas,
+        0,
+      ),
+      sin_fraccion: kpiRows.reduce((sum, row) => sum + row.sin_fraccion, 0),
+      fecha_min: dates.sort()[0] ?? null,
+      fecha_max: dates.sort().at(-1) ?? null,
+    }
+  }, [kpiRows, kpiProviderRows, categoriasRows.length, mensualRows.length])
 
   const comparisonData = useMemo(() => {
     const grouped = new Map<string, ProviderComparison>()
-    for (const row of comparison.data ?? []) {
+    for (const row of comparisonDataRows) {
       const current = grouped.get(row.proveedor)
       if (current) {
         current.importe_mxn += row.importe_mxn ?? 0
@@ -222,9 +481,7 @@ export function ProveedoresTab({
       }
     }
     return top.sort((a, b) => b.importe_mxn - a.importe_mxn)
-  }, [comparison.data, selectedProviderSet])
-
-  const mensualRows = useMemo(() => mensual.data ?? [], [mensual.data])
+  }, [comparisonDataRows, selectedProviderSet])
   const annualComparison = useMemo(() => {
     const amounts = new Map<string, number>()
     const monthBounds = new Map<number, { first: number; last: number }>()
@@ -391,7 +648,7 @@ export function ProveedoresTab({
   )
   const concentration = useMemo(() => {
     const amountsByDescription = new Map<string, number>()
-    for (const row of productos.data ?? []) {
+    for (const row of productosRows) {
       const description = row.descripcion.trim()
       if (!description) continue
       amountsByDescription.set(
@@ -406,7 +663,7 @@ export function ProveedoresTab({
       .sort((a, b) => b.value - a.value)
       .slice(0, 10)
     const topAmount = topArticles.reduce((total, row) => total + row.value, 0)
-    const total = Math.max(kpis.data?.importe_total_mxn ?? 0, topAmount)
+    const total = Math.max(kpisData?.importe_total_mxn ?? 0, topAmount)
     const otherAmount = Math.max(0, total - topAmount)
     const colors = [
       '#5b2480',
@@ -445,7 +702,7 @@ export function ProveedoresTab({
             : 0,
       })),
     }
-  }, [productos.data, kpis.data?.importe_total_mxn])
+  }, [productosRows, kpisData?.importe_total_mxn])
 
   return (
     <div className="space-y-4">
@@ -454,9 +711,14 @@ export function ProveedoresTab({
         subtitle={`Información calculada con los filtros generales aplicados: ${providerFilterDescription}.`}
         bodyClassName="p-4"
       >
-        {kpis.isError && !kpis.data ? (
-          <ErrorState message={kpis.error.message} onRetry={kpis.refetch} />
-        ) : kpis.isLoading && !kpis.data ? (
+        {kpisError ? (
+          <ErrorState
+            message={kpisError.error.message}
+            onRetry={() => {
+              void Promise.all(kpiQueries.map((query) => query.refetch()))
+            }}
+          />
+        ) : kpisLoading ? (
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             {Array.from({ length: 4 }).map((_, index) => (
               <Skeleton key={index} className="h-16 w-full rounded-xl" />
@@ -467,19 +729,19 @@ export function ProveedoresTab({
             <div className="grid flex-1 grid-cols-2 gap-2 sm:grid-cols-4">
               <SummaryItem
                 label="Importe total"
-                value={formatMxnCompact(kpis.data?.importe_total_mxn)}
+                value={formatMxnCompact(kpisData?.importe_total_mxn)}
               />
               <SummaryItem
                 label="Compras"
-                value={formatNumber(kpis.data?.registros)}
+                value={formatNumber(kpisData?.registros)}
               />
               <SummaryItem
                 label="Proveedores"
-                value={formatNumber(kpis.data?.proveedores)}
+                value={formatNumber(kpisData?.proveedores)}
               />
               <SummaryItem
                 label="Participación internacional"
-                value={formatPercent(kpis.data?.pct_internacional)}
+                value={formatPercent(kpisData?.pct_internacional)}
               />
             </div>
             <button
@@ -510,12 +772,16 @@ export function ProveedoresTab({
         }
         bodyClassName="p-4 pt-5"
       >
-        {comparison.isLoading && !comparison.data ? (
+        {comparisonLoading ? (
           <Skeleton className="h-[360px] w-full" />
-        ) : comparison.isError && !comparison.data ? (
+        ) : comparisonError ? (
           <ErrorState
-            message={comparison.error.message}
-            onRetry={comparison.refetch}
+            message={comparisonError.error.message}
+            onRetry={() => {
+              void Promise.all(
+                comparisonQueries.map((query) => query.refetch()),
+              )
+            }}
           />
         ) : comparisonData.length === 0 ? (
           <EmptyState
@@ -741,10 +1007,15 @@ export function ProveedoresTab({
         }
         bodyClassName="p-4 pt-5"
       >
-        {mensual.isLoading && !mensual.data ? (
+        {monthlyLoading ? (
           <Skeleton className="h-[340px] w-full" />
-        ) : mensual.isError && !mensual.data ? (
-          <ErrorState message={mensual.error.message} onRetry={mensual.refetch} />
+        ) : monthlyError ? (
+          <ErrorState
+            message={monthlyError.error.message}
+            onRetry={() => {
+              void Promise.all(monthlyQueries.map((query) => query.refetch()))
+            }}
+          />
         ) : !annualComparison.data.length ? (
           <EmptyState
             icon={CalendarDays}
@@ -919,14 +1190,16 @@ export function ProveedoresTab({
             ) : null
           }
         >
-          {mensual.isLoading && !mensual.data ? (
+          {monthlyLoading ? (
             <Skeleton className="h-[292px] w-full" />
-          ) : mensual.isError && !mensual.data ? (
+          ) : monthlyError ? (
             <ErrorState
-              message={mensual.error.message}
-              onRetry={mensual.refetch}
+              message={monthlyError.error.message}
+              onRetry={() => {
+                void Promise.all(monthlyQueries.map((query) => query.refetch()))
+              }}
             />
-          ) : !mensual.data?.length ? (
+          ) : !mensualRows.length ? (
             <EmptyState
               icon={CalendarDays}
               title="Sin compras mensuales"
@@ -1060,23 +1333,25 @@ export function ProveedoresTab({
           subtitle="Categorías con mayor importe dentro de los filtros aplicados"
           bodyClassName="p-4 pt-2"
           actions={
-            categorias.data?.length ? (
+            categoriasRows.length ? (
               <ChartDownloadButton fileName="categorias-por-proveedor" />
             ) : null
           }
         >
-          {categorias.isLoading && !categorias.data ? (
+          {categoryLoading ? (
             <div className="space-y-3 py-3">
               {Array.from({ length: 6 }).map((_, index) => (
                 <Skeleton key={index} className="h-11 w-full" />
               ))}
             </div>
-          ) : categorias.isError && !categorias.data ? (
+          ) : categoryError ? (
             <ErrorState
-              message={categorias.error.message}
-              onRetry={categorias.refetch}
+              message={categoryError.error.message}
+              onRetry={() => {
+                void Promise.all(categoryQueries.map((query) => query.refetch()))
+              }}
             />
-          ) : !categorias.data?.length ? (
+          ) : !categoriasRows.length ? (
             <EmptyState
               icon={Tags}
               title="Sin categorías"
@@ -1085,7 +1360,7 @@ export function ProveedoresTab({
             />
           ) : (
             <BarList
-              items={categorias.data.map((row) => ({
+              items={categoriasRows.map((row) => ({
                 key: row.categoria,
                 label: row.categoria,
                 value: row.importe_mxn,
@@ -1109,24 +1384,26 @@ export function ProveedoresTab({
                 <ChartLine className="size-3.5" />
                 Top 10
               </span>
-              {productos.data?.length ? (
+              {productosRows.length ? (
                 <ChartDownloadButton fileName="principales-articulos-compras" />
               ) : null}
             </>
           }
         >
-          {productos.isLoading && !productos.data ? (
+          {productLoading ? (
             <div className="space-y-3 py-3">
               {Array.from({ length: 6 }).map((_, index) => (
                 <Skeleton key={index} className="h-11 w-full" />
               ))}
             </div>
-          ) : productos.isError && !productos.data ? (
+          ) : productError ? (
             <ErrorState
-              message={productos.error.message}
-              onRetry={productos.refetch}
+              message={productError.error.message}
+              onRetry={() => {
+                void Promise.all(productQueries.map((query) => query.refetch()))
+              }}
             />
-          ) : !productos.data?.length ? (
+          ) : !productosRows.length ? (
             <EmptyState
               icon={ChartLine}
               title="Sin artículos con cantidad"
@@ -1135,7 +1412,7 @@ export function ProveedoresTab({
             />
           ) : (
             <BarList
-              items={productos.data.slice(0, 10).map((row) => ({
+              items={productosRows.slice(0, 10).map((row) => ({
                 key: `${row.descripcion}-${row.anio}`,
                 label: row.descripcion,
                 value: row.importe_mxn,
@@ -1157,12 +1434,14 @@ export function ProveedoresTab({
             ) : null
           }
         >
-          {productos.isLoading && !productos.data ? (
+          {productLoading ? (
             <Skeleton className="h-[340px] w-full" />
-          ) : productos.isError && !productos.data ? (
+          ) : productError ? (
             <ErrorState
-              message={productos.error.message}
-              onRetry={productos.refetch}
+              message={productError.error.message}
+              onRetry={() => {
+                void Promise.all(productQueries.map((query) => query.refetch()))
+              }}
             />
           ) : !concentration.data.length || concentration.total <= 0 ? (
             <EmptyState

@@ -1,8 +1,9 @@
 import { useState } from 'react'
-import { keepPreviousData, useQuery } from '@tanstack/react-query'
+import { keepPreviousData, useQueries } from '@tanstack/react-query'
 import { ChartLine, Info } from 'lucide-react'
 import {
   CartesianGrid,
+  Legend,
   Line,
   LineChart,
   ReferenceLine,
@@ -43,6 +44,17 @@ const tooltipStyle = {
   fontSize: 12,
 }
 
+const lineColors = [
+  '#5b2480',
+  '#0e7490',
+  '#c2410c',
+  '#2563eb',
+  '#15803d',
+  '#be123c',
+  '#7c3aed',
+  '#a16207',
+]
+
 export function PreciosTab({ filters, anios }: PreciosTabProps) {
   const [anio, setAnio] = useState<number | undefined>()
   const [descripcion, setDescripcion] = useState<string | undefined>()
@@ -50,14 +62,38 @@ export function PreciosTab({ filters, anios }: PreciosTabProps) {
   const anioEfectivo =
     anio !== undefined && anios.includes(anio) ? anio : anios[0]
 
-  const precios = useQuery({
-    queryKey: ['compras', 'precios', filters, anioEfectivo],
-    queryFn: ({ signal }) =>
-      api.comprasPrecios(filters, { anio: anioEfectivo, top: 100 }, signal),
-    placeholderData: keepPreviousData,
+  const descripcionesFiltro = [...new Set(filters.descripcion ?? [])]
+  const filtrosDePrecios =
+    descripcionesFiltro.length > 0 ? descripcionesFiltro : [undefined]
+  const consultasPrecios = useQueries({
+    queries: filtrosDePrecios.map((descripcionFiltro) => ({
+      queryKey: [
+        'compras',
+        'precios',
+        filters,
+        anioEfectivo,
+        descripcionFiltro,
+      ],
+      queryFn: ({ signal }) =>
+        api.comprasPrecios(
+          descripcionFiltro
+            ? { ...filters, descripcion: [descripcionFiltro] }
+            : filters,
+          { anio: anioEfectivo, top: 100 },
+          signal,
+        ),
+      placeholderData: keepPreviousData,
+    })),
   })
 
-  const productos = precios.data ?? []
+  const productos = consultasPrecios.flatMap((consulta) => consulta.data ?? [])
+  const errorPrecios = consultasPrecios.find(
+    (consulta) => consulta.isError && !consulta.data,
+  )
+  const cargandoPrecios = consultasPrecios.some(
+    (consulta) => consulta.isLoading && !consulta.data,
+  )
+  const comparandoProductos = descripcionesFiltro.length > 1
   const descripcionEfectiva =
     descripcion && productos.some((item) => item.descripcion === descripcion)
       ? descripcion
@@ -66,25 +102,53 @@ export function PreciosTab({ filters, anios }: PreciosTabProps) {
     (item) => item.descripcion === descripcionEfectiva,
   )
 
-  const mensual = useQuery({
-    queryKey: [
-      'compras',
-      'precios-mensual',
-      filters,
-      descripcionEfectiva,
-      anioEfectivo,
-    ],
-    queryFn: ({ signal }) =>
-      api.comprasPrecioMensual(
+  const productosGrafica = comparandoProductos
+    ? productos.filter((item) => descripcionesFiltro.includes(item.descripcion))
+    : producto
+      ? [producto]
+      : []
+  const consultasMensuales = useQueries({
+    queries: productosGrafica.map((item) => ({
+      queryKey: [
+        'compras',
+        'precios-mensual',
         filters,
-        { descripcion: descripcionEfectiva ?? '', anio: anioEfectivo },
-        signal,
-      ),
-    enabled: Boolean(descripcionEfectiva),
-    placeholderData: keepPreviousData,
+        item.descripcion,
+        anioEfectivo,
+      ],
+      queryFn: ({ signal }) =>
+        api.comprasPrecioMensual(
+          filters,
+          { descripcion: item.descripcion, anio: anioEfectivo },
+          signal,
+        ),
+      enabled: Boolean(anioEfectivo),
+      placeholderData: keepPreviousData,
+    })),
   })
 
-  const serie = mensual.data ?? []
+  const series = productosGrafica.map((item, index) => ({
+    producto: item,
+    dataKey: `precio_${index}`,
+    color: lineColors[index % lineColors.length],
+  }))
+  const puntosPorMes = new Map<string, Record<string, string | number>>()
+  consultasMensuales.forEach((consulta, index) => {
+    for (const punto of consulta.data ?? []) {
+      const datosMes = puntosPorMes.get(punto.mes) ?? { mes: punto.mes }
+      datosMes[`precio_${index}`] = punto.precio_promedio_mxn ?? 0
+      puntosPorMes.set(punto.mes, datosMes)
+    }
+  })
+  const serie = [...puntosPorMes.values()].sort((a, b) =>
+    String(a.mes).localeCompare(String(b.mes)),
+  )
+  const errorMensual = consultasMensuales.find(
+    (consulta) => consulta.isError && !consulta.data,
+  )
+  const cargandoMensual = consultasMensuales.some(
+    (consulta) => consulta.isLoading && !consulta.data,
+  )
   const precioAnual = producto?.precio_promedio_mxn ?? null
 
   return (
@@ -113,12 +177,16 @@ export function PreciosTab({ filters, anios }: PreciosTabProps) {
           ) : null
         }
       >
-        {precios.isError && !precios.data ? (
+        {errorPrecios ? (
           <ErrorState
-            message={precios.error?.message ?? 'Error desconocido'}
-            onRetry={precios.refetch}
+            message={errorPrecios.error?.message ?? 'Error desconocido'}
+            onRetry={() => {
+              void Promise.all(
+                consultasPrecios.map((consulta) => consulta.refetch()),
+              )
+            }}
           />
-        ) : precios.isLoading && !precios.data ? (
+        ) : cargandoPrecios ? (
           <div className="space-y-2 p-5">
             {Array.from({ length: 8 }).map((_, index) => (
               <Skeleton key={index} className="h-11 w-full" />
@@ -147,7 +215,10 @@ export function PreciosTab({ filters, anios }: PreciosTabProps) {
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {productos.map((item) => {
-                    const activo = item.descripcion === descripcionEfectiva
+                    const activo = productosGrafica.some(
+                      (productoGrafica) =>
+                        productoGrafica.descripcion === item.descripcion,
+                    )
                     return (
                       <tr
                         key={item.descripcion}
@@ -158,18 +229,29 @@ export function PreciosTab({ filters, anios }: PreciosTabProps) {
                         }
                       >
                         <td className="max-w-[340px] px-4 py-2.5">
-                          <button
-                            type="button"
-                            onClick={() => setDescripcion(item.descripcion)}
-                            className={`block max-w-full truncate text-left font-medium transition ${
-                              activo
-                                ? 'text-brand-700'
-                                : 'text-slate-800 hover:text-brand-700'
-                            }`}
-                            title={item.descripcion}
-                          >
-                            {item.descripcion}
-                          </button>
+                          {comparandoProductos ? (
+                            <span
+                              className={`block max-w-full truncate font-medium ${
+                                activo ? 'text-brand-700' : 'text-slate-800'
+                              }`}
+                              title={item.descripcion}
+                            >
+                              {item.descripcion}
+                            </span>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => setDescripcion(item.descripcion)}
+                              className={`block max-w-full truncate text-left font-medium transition ${
+                                activo
+                                  ? 'text-brand-700'
+                                  : 'text-slate-800 hover:text-brand-700'
+                              }`}
+                              title={item.descripcion}
+                            >
+                              {item.descripcion}
+                            </button>
+                          )}
                         </td>
                         <td className="max-w-[190px] px-4 py-2.5">
                           <span className="truncate text-slate-500">
@@ -207,38 +289,44 @@ export function PreciosTab({ filters, anios }: PreciosTabProps) {
       </SectionCard>
 
       <SectionCard
-        title="Evolución mensual del precio promedio"
+        title="Evolución mensual del precio promedio por producto"
         subtitle={
-          producto
-            ? `${producto.descripcion} · ${producto.anio}`
+          comparandoProductos
+            ? `${productosGrafica.length} productos comparados · ${anioEfectivo ?? ''}`
+            : producto
+              ? `${producto.descripcion} · ${producto.anio}`
             : 'Selecciona un producto de la tabla'
         }
         bodyClassName="p-4 pt-5"
         actions={
-          producto && serie.length > 0 ? (
+          productosGrafica.length > 0 && serie.length > 0 ? (
             <>
               <span className="inline-flex items-center gap-1.5 rounded-full border border-brand-100 bg-brand-50 px-2.5 py-1 text-[11px] font-medium text-brand-700">
                 <ChartLine className="size-3" />
-                {formatNumber(producto.meses)} meses con compras
+                {formatNumber(serie.length)} meses con compras
               </span>
               <ChartDownloadButton fileName="evolucion-mensual-precio" />
             </>
           ) : null
         }
       >
-        {!producto ? (
+        {productosGrafica.length === 0 ? (
           <EmptyState
             icon={ChartLine}
             title="Selecciona un producto"
             description="Elige un producto de la tabla para ver cómo cambió su precio promedio mes a mes."
             className="py-20"
           />
-        ) : mensual.isError && !mensual.data ? (
+        ) : errorMensual ? (
           <ErrorState
-            message={mensual.error?.message ?? 'Error desconocido'}
-            onRetry={mensual.refetch}
+            message={errorMensual.error?.message ?? 'Error desconocido'}
+            onRetry={() => {
+              void Promise.all(
+                consultasMensuales.map((consulta) => consulta.refetch()),
+              )
+            }}
           />
-        ) : mensual.isLoading && !mensual.data ? (
+        ) : cargandoMensual ? (
           <Skeleton className="h-[300px] w-full" />
         ) : serie.length === 0 ? (
           <EmptyState
@@ -249,21 +337,29 @@ export function PreciosTab({ filters, anios }: PreciosTabProps) {
           />
         ) : (
           <>
-            <div data-chart-export-footer className="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
-              <Dato
-                label="Precio promedio anual"
-                value={formatMxnDetailed(precioAnual)}
-              />
-              <Dato label="Importe del año" value={formatMxn(producto.importe_mxn)} />
-              <Dato
-                label="Cantidad del año"
-                value={formatDecimal(producto.cantidad)}
-              />
-              <Dato
-                label="Compras registradas"
-                value={formatNumber(producto.registros)}
-              />
-            </div>
+            {!comparandoProductos && producto && (
+              <div
+                data-chart-export-footer
+                className="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-4"
+              >
+                <Dato
+                  label="Precio promedio anual"
+                  value={formatMxnDetailed(precioAnual)}
+                />
+                <Dato
+                  label="Importe del año"
+                  value={formatMxn(producto.importe_mxn)}
+                />
+                <Dato
+                  label="Cantidad del año"
+                  value={formatDecimal(producto.cantidad)}
+                />
+                <Dato
+                  label="Compras registradas"
+                  value={formatNumber(producto.registros)}
+                />
+              </div>
+            )}
             <div className="h-[310px] w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart
@@ -291,15 +387,20 @@ export function PreciosTab({ filters, anios }: PreciosTabProps) {
                     width={82}
                     domain={['auto', 'auto']}
                   />
+                  {series.length > 1 && (
+                    <Legend
+                      wrapperStyle={{ fontSize: 12, paddingTop: 12 }}
+                    />
+                  )}
                   <Tooltip
                     contentStyle={tooltipStyle}
                     labelFormatter={(label) => formatMonthLong(String(label))}
-                    formatter={(value) => [
+                    formatter={(value, name) => [
                       formatMxnDetailed(Number(value)),
-                      'Precio promedio',
+                      String(name),
                     ]}
                   />
-                  {precioAnual != null && (
+                  {!comparandoProductos && precioAnual != null && (
                     <ReferenceLine
                       y={precioAnual}
                       stroke="#94a3b8"
@@ -312,23 +413,29 @@ export function PreciosTab({ filters, anios }: PreciosTabProps) {
                       }}
                     />
                   )}
-                  <Line
-                    type="monotone"
-                    dataKey="precio_promedio_mxn"
-                    name="Precio promedio"
-                    stroke="#5b2480"
-                    strokeWidth={2.25}
-                    dot={{ r: 3, strokeWidth: 1, fill: '#fff' }}
-                    activeDot={{ r: 5, strokeWidth: 2, stroke: '#fff' }}
-                    isAnimationActive={false}
-                  />
+                  {series.map(({ producto: item, dataKey, color }) => (
+                    <Line
+                      key={item.descripcion}
+                      type="monotone"
+                      dataKey={dataKey}
+                      name={item.descripcion}
+                      stroke={color}
+                      strokeWidth={2.25}
+                      dot={{ r: 3, strokeWidth: 1, fill: '#fff' }}
+                      activeDot={{ r: 5, strokeWidth: 2, stroke: '#fff' }}
+                      isAnimationActive={false}
+                      connectNulls
+                    />
+                  ))}
                 </LineChart>
               </ResponsiveContainer>
             </div>
             <p className="mt-3 flex items-start gap-2 rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-[11px] leading-relaxed text-sky-800">
               <Info className="mt-0.5 size-3.5 shrink-0" />
-              Cada punto es el precio ponderado del mes (importe ÷ cantidad). La
-              línea punteada marca el promedio ponderado del año completo.
+              Cada línea representa el precio ponderado mensual de un producto
+              (importe ÷ cantidad).
+              {!comparandoProductos &&
+                ' La línea punteada marca el promedio ponderado del año completo.'}
             </p>
           </>
         )}

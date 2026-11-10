@@ -82,8 +82,9 @@ export function getMexicanHolidayMarkers(years: number[]): HolidayMarker[] {
       'Día de la Constitución',
       'official',
     )
-  
+    add(year, 4, 30, 'Día del Niño', 'official')
     add(year, 5, 1, 'Día del Trabajo', 'official')
+    add(year, 5, 10, 'Día de las Madres', 'official')
     add(year, 9, 16, 'Día de la Independencia', 'official')
     add(
       year,
