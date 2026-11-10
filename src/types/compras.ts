@@ -126,6 +126,10 @@ export interface CompraComparativoItem {
   delta_pp: number | null
   registros_actual: number
   registros_previo: number
+  importe_actual?: number | null
+  importe_previo?: number | null
+  cantidad_actual?: number | null
+  cantidad_previo?: number | null
   estado: ComprasComparativoEstado
   muestra_suficiente: boolean
 }
@@ -140,6 +144,10 @@ export interface CompraComparativoResult {
   min_registros: number
   total_actual: number | null
   total_previo: number | null
+  importe_total_actual?: number | null
+  importe_total_previo?: number | null
+  cantidad_total_actual?: number | null
+  cantidad_total_previo?: number | null
   items: CompraComparativoItem[]
   total_items: number
 }

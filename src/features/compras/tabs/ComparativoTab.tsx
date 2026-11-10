@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { keepPreviousData, useQuery } from '@tanstack/react-query'
+import { useMemo, useState } from 'react'
+import { keepPreviousData, useQueries } from '@tanstack/react-query'
 import {
   ArrowDownRight,
   ArrowUpRight,
@@ -24,6 +24,8 @@ import type {
   ComprasComparativoEstado,
   ComprasComparativoMetric,
   ComprasComparativoOrder,
+  CompraComparativoItem,
+  CompraComparativoResult,
   ComprasFilters,
 } from '@/types/compras'
 import { api } from '@/services/api'
@@ -147,34 +149,273 @@ export function ComparativoTab({
   const orderByEfectivo: ComprasComparativoOrder =
     esPrecio && orderBy === 'delta_pp' ? 'delta_abs' : orderBy
 
-  const query = useQuery({
-    queryKey: [
-      'compras',
-      'comparativo',
-      filters,
-      dimension,
-      metrica,
-      orderByEfectivo,
-      mes,
-      comparar,
-    ],
-    queryFn: ({ signal }) =>
-      api.comprasComparativo(
+  const selectedDescriptions = [...new Set(filters.descripcion ?? [])]
+  const descriptionsToQuery =
+    selectedDescriptions.length > 0 ? selectedDescriptions : [undefined]
+  const queries = useQueries({
+    queries: descriptionsToQuery.map((description) => ({
+      queryKey: [
+        'compras',
+        'comparativo',
         filters,
-        {
-          dimension,
-          metrica,
-          orderBy: orderByEfectivo,
-          mes,
-          comparar,
-          top: 25,
-        },
-        signal,
-      ),
-    placeholderData: keepPreviousData,
+        description,
+        dimension,
+        metrica,
+        orderByEfectivo,
+        mes,
+        comparar,
+      ],
+      queryFn: ({ signal }) =>
+        api.comprasComparativo(
+          description ? { ...filters, descripcion: [description] } : filters,
+          {
+            dimension,
+            metrica,
+            orderBy: orderByEfectivo,
+            mes,
+            comparar,
+            top: 200,
+          },
+          signal,
+        ),
+      placeholderData: keepPreviousData,
+    })),
   })
 
-  const data = query.data
+  const successfulResults = queries
+    .map((query) => query.data)
+    .filter((result): result is CompraComparativoResult => result != null)
+  const queryError = queries.find((query) => query.isError && !query.data)
+  const queryLoading = queries.some(
+    (query) => query.isLoading && !query.data,
+  )
+  const data = useMemo<CompraComparativoResult | undefined>(() => {
+    const first = successfulResults[0]
+    if (!first) return undefined
+
+    const grouped = new Map<string, CompraComparativoItem>()
+    for (const result of successfulResults) {
+      for (const item of result.items) {
+        const current = grouped.get(item.clave)
+        if (current) {
+          current.valor_actual =
+            metrica === 'precio_promedio_mxn'
+              ? null
+              : (current.valor_actual ?? 0) + (item.valor_actual ?? 0)
+          current.valor_previo =
+            metrica === 'precio_promedio_mxn'
+              ? null
+              : (current.valor_previo ?? 0) + (item.valor_previo ?? 0)
+          current.registros_actual += item.registros_actual
+          current.registros_previo += item.registros_previo
+          current.importe_actual =
+            current.importe_actual != null && item.importe_actual != null
+              ? current.importe_actual + item.importe_actual
+              : null
+          current.importe_previo =
+            current.importe_previo != null && item.importe_previo != null
+              ? current.importe_previo + item.importe_previo
+              : null
+          current.cantidad_actual =
+            current.cantidad_actual != null && item.cantidad_actual != null
+              ? current.cantidad_actual + item.cantidad_actual
+              : null
+          current.cantidad_previo =
+            current.cantidad_previo != null && item.cantidad_previo != null
+              ? current.cantidad_previo + item.cantidad_previo
+              : null
+          current.detalle ??= item.detalle
+        } else {
+          grouped.set(item.clave, { ...item })
+        }
+      }
+    }
+
+    let items = [...grouped.values()].map((item) => {
+      const valorActual =
+        metrica === 'precio_promedio_mxn'
+          ? item.cantidad_actual != null && item.cantidad_actual > 0
+            ? (item.importe_actual ?? 0) / item.cantidad_actual
+            : item.valor_actual
+          : item.valor_actual ?? 0
+      const valorPrevio =
+        metrica === 'precio_promedio_mxn'
+          ? item.cantidad_previo != null && item.cantidad_previo > 0
+            ? (item.importe_previo ?? 0) / item.cantidad_previo
+            : item.valor_previo
+          : item.valor_previo ?? 0
+      const delta = valorActual != null && valorPrevio != null
+        ? valorActual - valorPrevio
+        : null
+      const variacion =
+        valorActual == null || valorPrevio == null
+          ? null
+          : valorPrevio > 0
+            ? ((valorActual - valorPrevio) * 100) / valorPrevio
+            : valorActual > 0
+              ? null
+              : 0
+      const shareActual =
+        metrica !== 'precio_promedio_mxn' &&
+        valorActual != null &&
+        (first.total_actual ?? 0) > 0
+          ? (valorActual * 100) / (first.total_actual ?? 0)
+          : null
+      const sharePrevio =
+        metrica !== 'precio_promedio_mxn' &&
+        valorPrevio != null &&
+        (first.total_previo ?? 0) > 0
+          ? (valorPrevio * 100) / (first.total_previo ?? 0)
+          : null
+      const estado: ComprasComparativoEstado =
+        valorActual == null || valorPrevio == null
+          ? 'sin_cambio'
+          : valorPrevio <= 0
+            ? valorActual > 0
+              ? 'nuevo'
+              : 'sin_cambio'
+            : valorActual <= 0
+              ? 'desaparece'
+              : Math.abs(((valorActual - valorPrevio) * 100) / valorPrevio) <
+                  1e-9
+                ? 'sin_cambio'
+                : valorActual > valorPrevio
+                  ? 'sube'
+                  : 'baja'
+      return {
+        ...item,
+        valor_actual: valorActual,
+        valor_previo: valorPrevio,
+        delta_abs: delta,
+        variacion_pct: variacion,
+        share_actual: shareActual,
+        share_previo: sharePrevio,
+        delta_pp:
+          shareActual != null && sharePrevio != null
+            ? shareActual - sharePrevio
+            : null,
+        estado,
+        muestra_suficiente:
+          item.registros_actual >= first.min_registros &&
+          item.registros_previo >= first.min_registros,
+      }
+    })
+
+    const weightedPriceAvailable = successfulResults.every(
+      (result) =>
+        result.importe_total_actual != null &&
+        result.importe_total_previo != null &&
+        result.cantidad_total_actual != null &&
+        result.cantidad_total_previo != null,
+    )
+    const actualAmount = successfulResults.reduce(
+      (sum, result) => sum + (result.importe_total_actual ?? 0),
+      0,
+    )
+    const previousAmount = successfulResults.reduce(
+      (sum, result) => sum + (result.importe_total_previo ?? 0),
+      0,
+    )
+    const actualQuantity = successfulResults.reduce(
+      (sum, result) => sum + (result.cantidad_total_actual ?? 0),
+      0,
+    )
+    const previousQuantity = successfulResults.reduce(
+      (sum, result) => sum + (result.cantidad_total_previo ?? 0),
+      0,
+    )
+    const totalActual =
+      metrica === 'precio_promedio_mxn'
+        ? weightedPriceAvailable && actualQuantity > 0
+          ? actualAmount / actualQuantity
+          : successfulResults.length === 1
+            ? first.total_actual
+            : null
+        : successfulResults.reduce(
+            (sum, result) => sum + (result.total_actual ?? 0),
+            0,
+          )
+    const totalPrevio =
+      metrica === 'precio_promedio_mxn'
+        ? weightedPriceAvailable && previousQuantity > 0
+          ? previousAmount / previousQuantity
+          : successfulResults.length === 1
+            ? first.total_previo
+            : null
+        : successfulResults.reduce(
+            (sum, result) => sum + (result.total_previo ?? 0),
+            0,
+          )
+    for (const item of items) {
+      if (metrica === 'precio_promedio_mxn') continue
+      item.share_actual =
+        totalActual && item.valor_actual != null
+          ? (item.valor_actual * 100) / totalActual
+          : null
+      item.share_previo =
+        totalPrevio && item.valor_previo != null
+          ? (item.valor_previo * 100) / totalPrevio
+          : null
+      item.delta_pp =
+        item.share_actual != null && item.share_previo != null
+          ? item.share_actual - item.share_previo
+          : null
+    }
+
+    const order = (item: CompraComparativoItem) =>
+      orderByEfectivo === 'delta_pp'
+        ? Math.abs(item.delta_pp ?? 0)
+        : orderByEfectivo === 'valor_actual'
+          ? item.valor_actual ?? 0
+          : Math.abs(item.delta_abs ?? 0)
+    items = items.sort((a, b) => order(b) - order(a))
+    const periodosPorMes = new Map<
+      string,
+      CompraComparativoResult['periodo']
+    >()
+    for (const result of successfulResults) {
+      for (const periodo of result.periodos) {
+        const current = periodosPorMes.get(periodo.mes)
+        if (current) {
+          current.registros += periodo.registros
+          current.completo = current.completo && periodo.completo
+        } else {
+          periodosPorMes.set(periodo.mes, { ...periodo })
+        }
+      }
+    }
+    const periodos = [...periodosPorMes.values()].sort((a, b) =>
+      a.mes.localeCompare(b.mes),
+    )
+
+    const aggregatePeriod = (
+      key: 'periodo' | 'periodo_anterior',
+    ): CompraComparativoResult['periodo'] => ({
+      ...first[key],
+      registros: successfulResults.reduce(
+        (sum, result) => sum + result[key].registros,
+        0,
+      ),
+      completo: successfulResults.every((result) => result[key].completo),
+    })
+
+    return {
+      ...first,
+      periodo: aggregatePeriod('periodo'),
+      periodo_anterior: aggregatePeriod('periodo_anterior'),
+      periodos,
+      total_actual: totalActual,
+      total_previo: totalPrevio,
+      items: items.slice(0, 25),
+      total_items: items.length,
+    }
+  }, [successfulResults, metrica, orderByEfectivo])
+  const query = {
+    isError: Boolean(queryError),
+    isLoading: queryLoading,
+    error: queryError?.error,
+    refetch: () => Promise.all(queries.map((item) => item.refetch())),
+  }
   const items = data?.items ?? []
   const periodos = data?.periodos ?? []
   const compararOptions = [...periodos]
@@ -187,10 +428,22 @@ export function ComparativoTab({
   const mesValue = mes ?? data?.periodo.mes ?? ''
   const compararValue = comparar ?? data?.periodo_anterior.mes ?? ''
 
-  const totalActual = data?.total_actual ?? 0
-  const totalPrevio = data?.total_previo ?? 0
+  const totalActual = data?.total_actual ?? null
+  const totalPrevio = data?.total_previo ?? null
   const variacionTotal =
-    totalPrevio > 0 ? ((totalActual - totalPrevio) * 100) / totalPrevio : null
+    totalPrevio != null && totalActual != null && totalPrevio > 0
+      ? ((totalActual - totalPrevio) * 100) / totalPrevio
+      : null
+  const faltaPonderacionPrecio =
+    esPrecio &&
+    selectedDescriptions.length > 1 &&
+    successfulResults.some(
+      (result) =>
+        result.importe_total_actual == null ||
+        result.importe_total_previo == null ||
+        result.cantidad_total_actual == null ||
+        result.cantidad_total_previo == null,
+    )
 
   const chartData = items
     .filter((item) => item.delta_abs != null)
@@ -365,6 +618,14 @@ export function ComparativoTab({
                 <Info className="mt-0.5 size-3.5 shrink-0" />
                 El rango de fechas del panel no se usa en este comparativo. Los
                 demás filtros sí se aplican.
+              </p>
+            )}
+            {faltaPonderacionPrecio && (
+              <p className="mt-3 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] leading-relaxed text-amber-800">
+                <Info className="mt-0.5 size-3.5 shrink-0" />
+                Para combinar precios promedio de varios productos, actualiza el
+                backend y vuelve a cargarlo. Los importes y cantidades sí se
+                comparan de forma agregada.
               </p>
             )}
             {data && !data.periodo.completo && (
