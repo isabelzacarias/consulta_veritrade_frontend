@@ -1,13 +1,32 @@
 /**
  * Cliente HTTP base de la API.
  *
- * En desarrollo el proxy de Vite reenvía `/api` a http://localhost:8000.
+ * En desarrollo el proxy de Vite reenvía `/api` a http://localhost:8001.
  * En despliegue puedes definir VITE_API_URL con la URL absoluta del backend.
  */
 export const API_BASE = (import.meta.env.VITE_API_URL?.trim() || '/api').replace(
   /\/+$/,
   '',
 )
+
+let accessToken: string | null = null
+let unauthorizedHandler: (() => void) | null = null
+
+export function setAccessToken(token: string | null) {
+  accessToken = token
+}
+
+export function registerUnauthorizedHandler(handler: (() => void) | null) {
+  unauthorizedHandler = handler
+}
+
+function authHeaders(init?: HeadersInit): Headers {
+  const headers = new Headers(init)
+  if (accessToken) {
+    headers.set('Authorization', `Bearer ${accessToken}`)
+  }
+  return headers
+}
 
 type QueryValue =
   | string
@@ -55,34 +74,83 @@ export class ApiError extends Error {
   }
 }
 
+async function errorMessage(response: Response): Promise<string> {
+  const body = await response.text()
+  let detail = body
+  try {
+    const parsed = JSON.parse(body) as { detail?: unknown }
+    if (typeof parsed.detail === 'string') {
+      detail = parsed.detail
+    } else if (parsed.detail) {
+      detail = JSON.stringify(parsed.detail)
+    }
+  } catch {
+    // La respuesta no era JSON: conservamos el texto plano.
+  }
+  return (detail || `Error ${response.status} al consultar la API`).slice(0, 300)
+}
+
+function notifyUnauthorized(status: number) {
+  if (status === 401) unauthorizedHandler?.()
+}
+
 export async function request<T>(
   path: string,
   params?: object,
   init?: RequestInit,
 ): Promise<T> {
+  const headers = authHeaders(init?.headers)
+  headers.set('Accept', 'application/json')
+
   const response = await fetch(`${API_BASE}${path}${buildQuery(params)}`, {
-    headers: { Accept: 'application/json', ...init?.headers },
     ...init,
+    headers,
   })
 
   if (!response.ok) {
-    const body = await response.text()
-    let detail = body
-    try {
-      const parsed = JSON.parse(body) as { detail?: unknown }
-      if (typeof parsed.detail === 'string') {
-        detail = parsed.detail
-      } else if (parsed.detail) {
-        detail = JSON.stringify(parsed.detail)
-      }
-    } catch {
-      // La respuesta no era JSON: conservamos el texto plano.
-    }
-    throw new ApiError(
-      (detail || `Error ${response.status} al consultar la API`).slice(0, 300),
-      response.status,
-    )
+    notifyUnauthorized(response.status)
+    throw new ApiError(await errorMessage(response), response.status)
   }
 
   return (await response.json()) as T
+}
+
+function filenameFromDisposition(value: string | null): string | null {
+  if (!value) return null
+  const match = /filename\*?=(?:UTF-8'')?"?([^";]+)"?/i.exec(value)
+  if (!match) return null
+  try {
+    return decodeURIComponent(match[1])
+  } catch {
+    return match[1]
+  }
+}
+
+export async function downloadFile(
+  path: string,
+  params?: object,
+  fallbackName = 'exportacion',
+): Promise<void> {
+  const response = await fetch(
+    `${API_BASE}${path}${buildQuery(params)}`,
+    { headers: authHeaders() },
+  )
+
+  if (!response.ok) {
+    notifyUnauthorized(response.status)
+    throw new ApiError(await errorMessage(response), response.status)
+  }
+
+  const blob = await response.blob()
+  const filename =
+    filenameFromDisposition(response.headers.get('Content-Disposition')) ??
+    fallbackName
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = filename
+  document.body.appendChild(link)
+  link.click()
+  link.remove()
+  window.setTimeout(() => URL.revokeObjectURL(url), 0)
 }

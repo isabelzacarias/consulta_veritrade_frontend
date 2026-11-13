@@ -34,6 +34,7 @@ import { ComparativoTab } from '@/features/compras/tabs/ComparativoTab'
 import { PreciosTab } from '@/features/compras/tabs/PreciosTab'
 import { ProveedoresTab } from '@/features/compras/tabs/ProveedoresTab'
 import { ImportComprasDialog } from '@/features/compras/dialogs/ImportComprasDialog'
+import { useAuth } from '@/features/auth/AuthContext'
 
 const TABS: Array<{ id: ComprasTab; label: string; icon: LucideIcon }> = [
   { id: 'graficas', label: 'Gráficas', icon: BarChart3 },
@@ -45,6 +46,9 @@ const TABS: Array<{ id: ComprasTab; label: string; icon: LucideIcon }> = [
 
 export function ComprasPage() {
   const queryClient = useQueryClient()
+  const auth = useAuth()
+  const canImport = auth.hasPermission('compras.importar')
+  const canExport = auth.hasPermission('compras.exportar')
   const [searchParams, setSearchParams] = useSearchParams()
 
   const { filters, tab: activeTab } = useMemo(
@@ -168,7 +172,7 @@ export function ComprasPage() {
         subtitle="Compras por artículo · HORBIS INNOTRADE"
         isRefreshing={isRefreshing}
         onRefresh={refresh}
-        onImport={() => setImportOpen(true)}
+        onImport={canImport ? () => setImportOpen(true) : undefined}
         importLabel="Importar compras"
         updatedAt={lastUpdated}
       />
@@ -203,14 +207,16 @@ export function ComprasPage() {
                 </p>
               </div>
             </div>
-            <button
-              type="button"
-              onClick={() => setImportOpen(true)}
-              className="inline-flex items-center gap-2 rounded-lg bg-aqua-600 px-3.5 py-2 text-xs font-medium text-white transition hover:bg-aqua-700"
-            >
-              <Upload className="size-3.5" />
-              Cargar CSV
-            </button>
+            {canImport && (
+              <button
+                type="button"
+                onClick={() => setImportOpen(true)}
+                className="inline-flex items-center gap-2 rounded-lg bg-aqua-600 px-3.5 py-2 text-xs font-medium text-white transition hover:bg-aqua-700"
+              >
+                <Upload className="size-3.5" />
+                Cargar CSV
+              </button>
+            )}
           </div>
         )}
 
@@ -303,6 +309,7 @@ export function ComprasPage() {
             orderBy={orderBy}
             desc={desc}
             isFetching={articulos.isFetching}
+            canExport={canExport}
             onOrderChange={(nextOrder, nextDesc) => {
               setOrderBy(nextOrder)
               setDesc(nextDesc)
@@ -330,11 +337,13 @@ export function ComprasPage() {
         </footer>
       </main>
 
-      <ImportComprasDialog
-        open={importOpen}
-        onClose={() => setImportOpen(false)}
-        onImported={reloadAfterImport}
-      />
+      {canImport && (
+        <ImportComprasDialog
+          open={importOpen}
+          onClose={() => setImportOpen(false)}
+          onImported={reloadAfterImport}
+        />
+      )}
     </div>
   )
 }

@@ -5,7 +5,13 @@ import { api } from '@/services/api'
 import { ImportacionesSection } from '@/features/importaciones/components/ImportacionesSection'
 import { ImportacionModal } from '@/features/importaciones/dialogs/ImportacionModal'
 
-export function OperacionesTab({ filters }: { filters: Filters }) {
+export function OperacionesTab({
+  filters,
+  canExport,
+}: {
+  filters: Filters
+  canExport: boolean
+}) {
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(25)
   const [searchDraft, setSearchDraft] = useState('')
@@ -37,6 +43,7 @@ export function OperacionesTab({ filters }: { filters: Filters }) {
         searchDraft={searchDraft}
         appliedSearch={search}
         isFetching={importaciones.isFetching}
+        canExport={canExport}
         onSearchDraftChange={setSearchDraft}
         onSearch={applySearch}
         onPageChange={setPage}

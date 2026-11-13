@@ -16,7 +16,7 @@ import type {
   ComprasOrder,
 } from '@/types/compras'
 import type { Page } from '@/types/common'
-import { API_BASE, buildQuery, request } from './client'
+import { downloadFile, request } from './client'
 
 export const comprasApi = {
   comprasKpis: (filters: ComprasFilters, signal?: AbortSignal) =>
@@ -126,18 +126,22 @@ export const comprasApi = {
       { signal },
     ),
 
-  comprasExportUrl: (
+  comprasExportar: (
     formato: 'xlsx' | 'csv',
     filters: ComprasFilters = {},
     orderBy: ComprasOrder = 'fecha',
     desc = true,
   ) =>
-    `${API_BASE}/compras/exportar${buildQuery({
-      ...filters,
-      formato,
-      order_by: orderBy,
-      desc,
-    })}`,
+    downloadFile(
+      '/compras/exportar',
+      {
+        ...filters,
+        formato,
+        order_by: orderBy,
+        desc,
+      },
+      `compras.${formato}`,
+    ),
 
   async importarCompras(
     archivo: File,

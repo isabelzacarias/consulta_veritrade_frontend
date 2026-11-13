@@ -114,7 +114,7 @@ que estuvieran activos.
 ### 1. Backend
 
 Sigue las instrucciones de `../Procesar_veritrade-backend/README.md` y deja la API
-corriendo en `http://localhost:8000`.
+corriendo en `http://localhost:8001`.
 
 ### 2. Frontend
 
@@ -128,7 +128,7 @@ Abre http://localhost:5173.
 
 ### Configuración de la API
 
-En desarrollo, Vite reenvía `/api/*` a `http://localhost:8000/*` (ver
+En desarrollo, Vite reenvía `/api/*` a `http://localhost:8001/*` (ver
 `vite.config.ts`). Por eso el cliente usa `/api` como base y no hay problemas de
 CORS.
 
@@ -141,13 +141,48 @@ VITE_API_URL=https://api.midominio.com
 Si solo quieres cambiar el destino del proxy de desarrollo (sin tocar el cliente):
 
 ```env
-VITE_PROXY_TARGET=http://127.0.0.1:8000
+VITE_PROXY_TARGET=http://127.0.0.1:8001
 ```
+
+### Autenticación SSO con la suite PHP
+
+En local la autenticación del frontend está desactivada por defecto. Para probar el
+flujo real contra la suite:
+
+```env
+VITE_AUTH_ENABLED=true
+VITE_AUTH_APP=compras
+VITE_AUTH_CONTEXT_URL=https://suite.midominio.com/api/auth/context.php
+VITE_AUTH_LOGIN_URL=https://suite.midominio.com/login.php
+VITE_AUTH_LOGOUT_URL=https://suite.midominio.com/logout.php
+VITE_SUITE_URL=https://suite.midominio.com
+```
+
+`VITE_SUITE_URL` alimenta el enlace **Suite** del header y la ruta `/suite`, que
+redirige al proyecto PHP. Si se omite, se usa el origen de
+`VITE_AUTH_CONTEXT_URL`.
+
+El `AuthProvider` consulta el contexto con `credentials: "include"`, guarda el JWT
+solo en memoria, lo inyecta como `Bearer` en las llamadas a la API y lo renueva
+antes de que expire. Si la API responde 401, vuelve a pedir el contexto. Sin sesión
+redirige al login de la suite; sin el permiso `compras.ver` muestra la pantalla de
+acceso denegado.
+
+La suite debe permitir el origen exacto de la SPA en CORS con credenciales. Si la
+suite y la SPA no comparten un dominio registrable, la cookie de sesión no viaja y
+el SSO por cookie no funciona.
+
+La interfaz también respeta los permisos:
+
+- Sin `compras.importar` no se muestran los botones de importar ni los diálogos de carga.
+- Sin `compras.exportar` no se muestran los botones XLSX/CSV.
+- Las exportaciones y la subida de Excel viajan con `Authorization: Bearer`; no se
+  usan enlaces planos que pierdan el token.
 
 ### Docker de desarrollo
 
 `docker compose up` levanta Vite en http://localhost:5173. El contenedor usa
-`network_mode: host` y `VITE_PROXY_TARGET=http://127.0.0.1:8000` para alcanzar el
+`network_mode: host` y `VITE_PROXY_TARGET=http://127.0.0.1:8001` para alcanzar el
 backend FastAPI que corre en el host (escuchando en loopback).
 
 Este compose es solo para desarrollo: monta el código y usa HMR. No genera una
@@ -166,8 +201,9 @@ npm ci
 npm run build
 ```
 
-El resultado queda en `dist/`. Si defines `VITE_API_URL`, hazlo antes del build:
-Vite la incorpora en tiempo de compilación, no en tiempo de ejecución.
+El resultado queda en `dist/`. Si defines `VITE_API_URL`, `VITE_AUTH_ENABLED` o
+las URLs de SSO, hazlo antes del build: Vite las incorpora en tiempo de
+compilación, no en tiempo de ejecución.
 
 ### 2. Servir con Nginx
 
@@ -206,7 +242,7 @@ server {
 
 - `try_files ... /index.html` es necesario para las rutas de React Router.
 - El slash final de `proxy_pass` elimina `/api/` antes de llamar a FastAPI.
-- Si Nginx corre en el host, usa `http://127.0.0.1:8000/`.
+- Si Nginx corre en el host, usa `http://127.0.0.1:8001/`.
 - Si Nginx corre en Docker, únelo a la red `veritrade_net` y usa
   `http://veritrade_api:8000/`.
 - La configuración completa con redirección HTTP→HTTPS y TLS está en el README

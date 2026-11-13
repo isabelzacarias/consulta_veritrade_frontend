@@ -7,7 +7,7 @@ import {
   Loader2,
   Search,
 } from 'lucide-react'
-import type { FormEvent } from 'react'
+import { useState, type FormEvent } from 'react'
 import type { Filters, Importacion } from '@/types/importaciones'
 import type { Page, QuerySlice } from '@/types/common'
 import { api } from '@/services/api'
@@ -24,6 +24,7 @@ interface ImportacionesSectionProps {
   searchDraft: string
   appliedSearch: string
   isFetching: boolean
+  canExport: boolean
   onSearchDraftChange: (value: string) => void
   onSearch: () => void
   onPageChange: (page: number) => void
@@ -39,17 +40,35 @@ export function ImportacionesSection({
   searchDraft,
   appliedSearch,
   isFetching,
+  canExport,
   onSearchDraftChange,
   onSearch,
   onPageChange,
   onPageSizeChange,
   onSelect,
 }: ImportacionesSectionProps) {
+  const [exportando, setExportando] = useState<'xlsx' | 'csv' | null>(null)
+  const [exportError, setExportError] = useState<string | null>(null)
+
   const data = query.data
   const items = data?.items ?? []
   const pages = data?.pages ?? 0
 
   const exportFilters = { ...filters, q: appliedSearch || undefined }
+
+  const descargar = async (formato: 'xlsx' | 'csv') => {
+    setExportando(formato)
+    setExportError(null)
+    try {
+      await api.exportar('importaciones', formato, exportFilters)
+    } catch (error) {
+      setExportError(
+        error instanceof Error ? error.message : 'No se pudo exportar.',
+      )
+    } finally {
+      setExportando(null)
+    }
+  }
 
   const submitSearch = (event: FormEvent) => {
     event.preventDefault()
@@ -69,20 +88,41 @@ export function ImportacionesSection({
               Actualizando
             </span>
           )}
-          <a
-            href={api.exportUrl('importaciones', 'xlsx', exportFilters)}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-600 transition hover:bg-slate-50"
-          >
-            <Download className="size-3.5" />
-            XLSX
-          </a>
-          <a
-            href={api.exportUrl('importaciones', 'csv', exportFilters)}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-600 transition hover:bg-slate-50"
-          >
-            <Download className="size-3.5" />
-            CSV
-          </a>
+          {exportError && (
+            <span className="text-[11px] text-rose-600" role="alert">
+              {exportError}
+            </span>
+          )}
+          {canExport && (
+            <>
+              <button
+                type="button"
+                onClick={() => void descargar('xlsx')}
+                disabled={exportando !== null}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-600 transition hover:bg-slate-50 disabled:opacity-60"
+              >
+                {exportando === 'xlsx' ? (
+                  <Loader2 className="size-3.5 animate-spin" />
+                ) : (
+                  <Download className="size-3.5" />
+                )}
+                XLSX
+              </button>
+              <button
+                type="button"
+                onClick={() => void descargar('csv')}
+                disabled={exportando !== null}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-600 transition hover:bg-slate-50 disabled:opacity-60"
+              >
+                {exportando === 'csv' ? (
+                  <Loader2 className="size-3.5 animate-spin" />
+                ) : (
+                  <Download className="size-3.5" />
+                )}
+                CSV
+              </button>
+            </>
+          )}
         </div>
       }
     >

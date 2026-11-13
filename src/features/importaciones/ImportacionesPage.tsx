@@ -45,6 +45,7 @@ import { PreguntasTab } from '@/features/importaciones/tabs/PreguntasTab'
 import { ComparativoTab } from '@/features/importaciones/tabs/ComparativoTab'
 import { MatrizTab } from '@/features/importaciones/tabs/MatrizTab'
 import { AppHeader } from '@/components/layout/AppHeader'
+import { useAuth } from '@/features/auth/AuthContext'
 
 const TABS: Array<{ id: ImportacionesTab; label: string; icon: LucideIcon }> = [
   { id: 'resumen', label: 'Resumen', icon: LayoutDashboard },
@@ -60,6 +61,9 @@ const TABS: Array<{ id: ImportacionesTab; label: string; icon: LucideIcon }> = [
 
 export function ImportacionesPage() {
   const queryClient = useQueryClient()
+  const auth = useAuth()
+  const canImport = auth.hasPermission('compras.importar')
+  const canExport = auth.hasPermission('compras.exportar')
   const [searchParams, setSearchParams] = useSearchParams()
 
   const { filters, tab: activeTab } = useMemo(
@@ -154,7 +158,7 @@ export function ImportacionesPage() {
         subtitle="Observatorio de importaciones · México"
         isRefreshing={isRefreshing}
         onRefresh={refresh}
-        onImport={() => setUploadOpen(true)}
+        onImport={canImport ? () => setUploadOpen(true) : undefined}
         importLabel="Importar datos"
         updatedAt={lastUpdated}
       />
@@ -190,14 +194,16 @@ export function ImportacionesPage() {
                 </p>
               </div>
             </div>
-            <button
-              type="button"
-              onClick={() => setUploadOpen(true)}
-              className="inline-flex items-center gap-2 rounded-lg bg-aqua-600 px-3.5 py-2 text-xs font-medium text-white transition hover:bg-aqua-700"
-            >
-              <Upload className="size-3.5" />
-              Cargar Excel
-            </button>
+            {canImport && (
+              <button
+                type="button"
+                onClick={() => setUploadOpen(true)}
+                className="inline-flex items-center gap-2 rounded-lg bg-aqua-600 px-3.5 py-2 text-xs font-medium text-white transition hover:bg-aqua-700"
+              >
+                <Upload className="size-3.5" />
+                Cargar Excel
+              </button>
+            )}
           </div>
         )}
 
@@ -271,6 +277,7 @@ export function ImportacionesPage() {
           <OperacionesTab
             key={`operaciones-${filtersKey}`}
             filters={filters}
+            canExport={canExport}
           />
         )}
         {activeTab === 'preguntas' && <PreguntasTab filters={filters} />}
@@ -295,11 +302,13 @@ export function ImportacionesPage() {
         </footer>
       </main>
 
-      <UploadDialog
-        open={uploadOpen}
-        onClose={() => setUploadOpen(false)}
-        onLoaded={reloadAfterUpload}
-      />
+      {canImport && (
+        <UploadDialog
+          open={uploadOpen}
+          onClose={() => setUploadOpen(false)}
+          onLoaded={reloadAfterUpload}
+        />
+      )}
     </div>
   )
 }

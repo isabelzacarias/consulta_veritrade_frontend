@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import {
   ChevronLeft,
   ChevronRight,
@@ -31,6 +32,7 @@ interface ComprasTableProps {
   orderBy: ComprasOrder
   desc: boolean
   isFetching: boolean
+  canExport: boolean
   onOrderChange: (orderBy: ComprasOrder, desc: boolean) => void
   onPageChange: (page: number) => void
   onPageSizeChange: (size: number) => void
@@ -77,14 +79,31 @@ export function ComprasTable({
   orderBy,
   desc,
   isFetching,
+  canExport,
   onOrderChange,
   onPageChange,
   onPageSizeChange,
 }: ComprasTableProps) {
+  const [exportando, setExportando] = useState<'xlsx' | 'csv' | null>(null)
+  const [exportError, setExportError] = useState<string | null>(null)
   const data = query.data
   const items = data?.items ?? []
   const pages = data?.pages ?? 0
   const ordenActual = `${orderBy}-${desc ? 'desc' : 'asc'}`
+
+  const descargar = async (formato: 'xlsx' | 'csv') => {
+    setExportando(formato)
+    setExportError(null)
+    try {
+      await api.comprasExportar(formato, filters, orderBy, desc)
+    } catch (error) {
+      setExportError(
+        error instanceof Error ? error.message : 'No se pudo exportar.',
+      )
+    } finally {
+      setExportando(null)
+    }
+  }
 
   return (
     <SectionCard
@@ -117,20 +136,41 @@ export function ComprasTable({
             className="h-8 rounded-lg border border-slate-200 bg-white px-2 text-xs text-slate-700 outline-none focus:border-brand-500"
             ariaLabel="Ordenar compras"
           />
-          <a
-            href={api.comprasExportUrl('xlsx', filters, orderBy, desc)}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-600 transition hover:bg-slate-50"
-          >
-            <Download className="size-3.5" />
-            XLSX
-          </a>
-          <a
-            href={api.comprasExportUrl('csv', filters, orderBy, desc)}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-600 transition hover:bg-slate-50"
-          >
-            <Download className="size-3.5" />
-            CSV
-          </a>
+          {exportError && (
+            <span className="text-[11px] text-rose-600" role="alert">
+              {exportError}
+            </span>
+          )}
+          {canExport && (
+            <>
+              <button
+                type="button"
+                onClick={() => void descargar('xlsx')}
+                disabled={exportando !== null}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-600 transition hover:bg-slate-50 disabled:opacity-60"
+              >
+                {exportando === 'xlsx' ? (
+                  <Loader2 className="size-3.5 animate-spin" />
+                ) : (
+                  <Download className="size-3.5" />
+                )}
+                XLSX
+              </button>
+              <button
+                type="button"
+                onClick={() => void descargar('csv')}
+                disabled={exportando !== null}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-600 transition hover:bg-slate-50 disabled:opacity-60"
+              >
+                {exportando === 'csv' ? (
+                  <Loader2 className="size-3.5 animate-spin" />
+                ) : (
+                  <Download className="size-3.5" />
+                )}
+                CSV
+              </button>
+            </>
+          )}
         </div>
       }
     >

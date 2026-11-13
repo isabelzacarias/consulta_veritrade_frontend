@@ -27,9 +27,7 @@ import type {
 import type { AgenteResult, ChatHistoryMessage } from '@/types/chatbot'
 import type { Page } from '@/types/common'
 import {
-  API_BASE,
-  ApiError,
-  buildQuery,
+  downloadFile,
   request,
   type QueryParams,
 } from './client'
@@ -245,11 +243,16 @@ export const importacionesApi = {
       signal,
     }),
 
-  exportUrl: (
+  exportar: (
     recurso: 'importaciones' | 'importadores' | 'proveedores',
     formato: 'xlsx' | 'csv',
     filters: Filters & { q?: string } = {},
-  ) => `${API_BASE}/exportar/${recurso}${buildQuery({ ...filters, formato })}`,
+  ) =>
+    downloadFile(
+      `/exportar/${recurso}`,
+      { ...filters, formato },
+      `${recurso}.${formato}`,
+    ),
 
   async subirExcels(
     archivos: File[],
@@ -260,21 +263,14 @@ export const importacionesApi = {
       form.append('archivos', archivo)
     }
 
-    const response = await fetch(
-      `${API_BASE}/procesamiento/upload-lote${buildQuery({
+    return request<Job>(
+      '/procesamiento/upload-lote',
+      {
         hoja: opciones.hoja,
         fila_header: opciones.filaHeader,
-      })}`,
-      { method: 'POST', body: form, headers: { Accept: 'application/json' } },
+      },
+      { method: 'POST', body: form },
     )
-
-    if (!response.ok) {
-      throw new ApiError(
-        `No se pudieron procesar los archivos (HTTP ${response.status})`,
-        response.status,
-      )
-    }
-    return (await response.json()) as Job
   },
 
   cargarEnMysql: (modo: 'agregar' | 'reemplazar', signal?: AbortSignal) =>

@@ -1,6 +1,7 @@
 import { NavLink } from 'react-router-dom'
-import { RefreshCw, Ship, ShoppingCart, Upload } from 'lucide-react'
+import { ExternalLink, RefreshCw, Ship, ShoppingCart, Upload } from 'lucide-react'
 import logoHeader from '@/assets/logo-header-hr.png'
+import { SUITE_URL } from '@/lib/suite'
 
 interface AppHeaderProps {
   title: string
@@ -61,6 +62,15 @@ export function AppHeader({
               Compras
             </NavLink>
           </nav>
+
+          <a
+            href={SUITE_URL}
+            title="Abrir la suite"
+            className="inline-flex h-9 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-xs font-medium text-slate-600 transition hover:bg-slate-50"
+          >
+            <ExternalLink className="size-3.5" />
+            Suite
+          </a>
 
           {updatedAt && (
             <span className="hidden text-[11px] text-slate-400 lg:inline">
