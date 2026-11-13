@@ -39,6 +39,8 @@ interface AuthSnapshot {
 const LOCAL_CONTEXT: AuthContextResponse = {
   token: '',
   expires_in: 0,
+  roles: ['admin'],
+  legacy_role: 'admin',
   empresa: null,
   perfiles: [],
   permissions: [...LOCAL_PERMISSIONS],
@@ -102,6 +104,9 @@ function normalizeContext(value: unknown): AuthContextResponse | null {
     login_url: typeof raw.login_url === 'string' ? raw.login_url : undefined,
     logout_url: typeof raw.logout_url === 'string' ? raw.logout_url : undefined,
     app_url: typeof raw.app_url === 'string' ? raw.app_url : undefined,
+    roles: normalizePermissions(raw.roles),
+    legacy_role:
+      typeof raw.legacy_role === 'string' ? raw.legacy_role : undefined,
     empresa: normalizeEmpresa(raw.empresa),
     perfiles: normalizePerfiles(raw.perfiles),
     permissions: normalizePermissions(raw.permissions),
@@ -349,6 +354,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [snapshot.permissions],
   )
 
+  const isAdmin = useMemo(() => {
+    const context = snapshot.context
+    if (!context) return false
+
+    const roles = context.roles ?? []
+    if (roles.some((role) => role.toLowerCase() === 'admin')) return true
+    if ((context.legacy_role ?? '').toLowerCase() === 'admin') return true
+
+    return (context.perfiles ?? []).some((perfil) => {
+      const clave = (typeof perfil === 'string' ? perfil : perfil.clave) ?? ''
+      return clave.toLowerCase().includes('admin')
+    })
+  }, [snapshot.context])
+
   const value = useMemo<AuthState>(
     () => ({
       status: snapshot.status,
@@ -357,10 +376,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       loginUrl: snapshot.loginUrl,
       logoutUrl: snapshot.logoutUrl,
       error: snapshot.error,
+      isAdmin,
       hasPermission,
       refresh,
     }),
-    [hasPermission, refresh, snapshot],
+    [hasPermission, isAdmin, refresh, snapshot],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

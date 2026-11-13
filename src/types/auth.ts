@@ -18,6 +18,8 @@ export interface AuthContextResponse {
   login_url?: string
   logout_url?: string
   app_url?: string
+  roles?: string[]
+  legacy_role?: string
   empresa?: AuthEmpresa | null
   perfiles?: AuthPerfil[]
   permissions?: string[]
@@ -37,6 +39,7 @@ export interface AuthState {
   loginUrl: string | null
   logoutUrl: string | null
   error: string | null
+  isAdmin: boolean
   hasPermission: (permission: string) => boolean
   refresh: () => Promise<void>
 }

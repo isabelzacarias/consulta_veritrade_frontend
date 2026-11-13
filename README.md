@@ -191,6 +191,13 @@ La interfaz también respeta los permisos:
 - Sin `compras.exportar` no se muestran los botones XLSX/CSV.
 - Las exportaciones y la subida de Excel viajan con `Authorization: Bearer`; no se
   usan enlaces planos que pierdan el token.
+- `compras.ver` habilita Importaciones y Compras para cualquier perfil, no solo
+  para `admin`. La SPA usa ese permiso para mostrar el enlace y permitir la ruta.
+- Para un perfil que solo deba ver Compras hace falta un permiso nuevo tipo
+  `compras.importaciones.ver`; no se puede separar con los permisos actuales.
+
+El contexto SSO devuelve `roles`, `legacy_role` y `permissions`; el header usa
+`compras.ver` para la navegación. El backend sigue siendo la autoridad de permisos.
 
 ### Docker de desarrollo
 
