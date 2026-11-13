@@ -135,8 +135,8 @@ export function AppHeader({
           </NavLink>
 
           <a href={SUITE_URL} onClick={closeMenu} className={actionClass}>
-            <ExternalLink className="size-3.5" />
-            Suite
+            <ExternalLink className="size-5" />
+            +IA
           </a>
 
           {updatedAt && (
