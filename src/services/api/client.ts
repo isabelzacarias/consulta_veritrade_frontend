@@ -1,13 +1,12 @@
 /**
  * Cliente HTTP base de la API.
  *
- * En desarrollo el proxy de Vite reenvía `/api` a http://localhost:8001.
- * En despliegue puedes definir VITE_API_URL con la URL absoluta del backend.
+ * La SPA vive bajo `/compras/` y consume la API en `/compras/api`.
+ * Vite y Nginx eliminan ese prefijo antes de llegar a FastAPI.
  */
-export const API_BASE = (import.meta.env.VITE_API_URL?.trim() || '/api').replace(
-  /\/+$/,
-  '',
-)
+export const API_BASE = (
+  import.meta.env.VITE_API_URL?.trim() || '/compras/api'
+).replace(/\/+$/, '')
 
 let accessToken: string | null = null
 let unauthorizedHandler: (() => void) | null = null

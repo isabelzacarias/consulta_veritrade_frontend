@@ -9,10 +9,11 @@ function App() {
   return (
     <AuthGate>
       <Routes>
-        <Route path="/" element={<ImportacionesPage />} />
+        <Route path="/" element={<Navigate to="/importaciones" replace />} />
+        <Route path="/importaciones" element={<ImportacionesPage />} />
         <Route path="/compras" element={<ComprasPage />} />
         <Route path="/suite" element={<SuiteRedirectPage />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
+        <Route path="*" element={<Navigate to="/importaciones" replace />} />
       </Routes>
 
       <ChatWidget />

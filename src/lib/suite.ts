@@ -9,9 +9,10 @@ function originOf(value: string | undefined): string | null {
 }
 
 const configured = import.meta.env.VITE_SUITE_URL?.trim()
-
-export const SUITE_URL = (
+const candidate =
   configured ||
   originOf(import.meta.env.VITE_AUTH_CONTEXT_URL) ||
   'http://localhost:8000'
-).replace(/\/+$/, '')
+
+export const SUITE_URL =
+  candidate === '/' ? '/' : candidate.replace(/\/+$/, '')

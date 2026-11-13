@@ -6,6 +6,8 @@ import '@/index.css'
 import App from '@/App'
 import { AuthProvider } from '@/features/auth/AuthProvider'
 
+const routerBase = import.meta.env.BASE_URL.replace(/\/+$/, '')
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -19,7 +21,7 @@ const queryClient = new QueryClient({
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
+      <BrowserRouter basename={routerBase || undefined}>
         <AuthProvider>
           <App />
         </AuthProvider>

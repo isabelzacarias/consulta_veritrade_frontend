@@ -53,7 +53,7 @@ export function AppHeader({
             aria-label="Áreas del sistema"
             className="flex items-center gap-0.5 rounded-xl border border-brand-200/70 bg-brand-50/60 p-0.5"
           >
-            <NavLink to="/" end className={navClass}>
+            <NavLink to="/importaciones" className={navClass}>
               <Ship className="size-3.5" />
               Importaciones
             </NavLink>

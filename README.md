@@ -7,7 +7,9 @@ de reportes, metadatos, importaciones, compras por artículo, exportación y pro
 ## Vistas
 
 El header compartido (`src/components/layout/AppHeader.tsx`) navega entre
-**Importaciones** (`/`) y **Compras** (`/compras`).
+**Importaciones** (`/compras/importaciones`) y **Compras**
+(`/compras/compras`). La SPA se publica bajo `/compras/` en el mismo origen que
+la suite PHP.
 
 `src/features/importaciones/ImportacionesPage.tsx` organiza el análisis de
 importaciones en pestañas:
@@ -78,8 +80,8 @@ activa. Los cambios se aplican manualmente con el botón principal.
 Los filtros aplicados y la pestaña activa se guardan en query params, por lo que
 sobreviven a recargas, se pueden compartir y permiten navegar con atrás/adelante.
 
-- Importaciones: `/?aduana=CANCUN-%20QUINTANA%20ROO&partida=306179100&tab=productos`
-- Compras: `/compras?categoria=AVES&ambito=internacional&tab=graficas`
+- Importaciones: `/compras/importaciones?aduana=CANCUN-%20QUINTANA%20ROO&partida=306179100&tab=productos`
+- Compras: `/compras/compras?categoria=AVES&ambito=internacional&tab=graficas`
 - `tab` controla la pestaña y no se envía a la API.
 - `src/lib/viewRoutes.ts` centraliza el parseo y los builders de URL.
 
@@ -105,8 +107,8 @@ elimina el historial guardado.
 Cuando el backend devuelve `filtros_sugeridos`, el chat navega automáticamente a
 la vista correspondiente y aplica los filtros canónicos y la pestaña sugerida. Por
 ejemplo, una consulta de compras de Aves abre
-`/compras?categoria=AVES&tab=graficas`, y una consulta de productos en Cancún abre
-`/?aduana=CANCUN-%20QUINTANA%20ROO&tab=productos`. Los filtros del chat reemplazan los
+`/compras/compras?categoria=AVES&tab=graficas`, y una consulta de productos en Cancún abre
+`/compras/importaciones?aduana=CANCUN-%20QUINTANA%20ROO&tab=productos`. Los filtros del chat reemplazan los
 que estuvieran activos.
 
 ## Puesta en marcha
@@ -124,24 +126,34 @@ cp .env.example .env   # opcional en desarrollo
 npm run dev
 ```
 
-Abre http://localhost:5173.
+La SPA se sirve bajo `/compras/`. Para el flujo integrado local se usa Nginx en
+`8000`, el PHP de la suite en `8002` y Vite en `5173`:
+
+```bash
+docker run -d --name veritrade_nginx_local --restart unless-stopped \
+  --network host \
+  -v "$PWD/deploy/nginx/local.conf:/etc/nginx/conf.d/default.conf:ro" \
+  nginx:alpine
+```
+
+Abre `http://localhost:8000/compras/`. La suite queda en
+`http://localhost:8000/`. Para depurar directo contra Vite:
+`http://localhost:5173/compras/`.
 
 ### Configuración de la API
 
-En desarrollo, Vite reenvía `/api/*` a `http://localhost:8001/*` (ver
-`vite.config.ts`). Por eso el cliente usa `/api` como base y no hay problemas de
-CORS.
+La SPA consume la API en `/compras/api`; Vite y Nginx eliminan ese prefijo antes
+de llegar a FastAPI:
 
-Para apuntar a otro backend, define en `.env`:
+```env
+VITE_API_URL=/compras/api
+VITE_PROXY_TARGET=http://127.0.0.1:8001
+```
+
+Si usas un dominio separado para la API:
 
 ```env
 VITE_API_URL=https://api.midominio.com
-```
-
-Si solo quieres cambiar el destino del proxy de desarrollo (sin tocar el cliente):
-
-```env
-VITE_PROXY_TARGET=http://127.0.0.1:8001
 ```
 
 ### Autenticación SSO con la suite PHP
@@ -152,10 +164,11 @@ flujo real contra la suite:
 ```env
 VITE_AUTH_ENABLED=true
 VITE_AUTH_APP=compras
-VITE_AUTH_CONTEXT_URL=https://suite.midominio.com/api/auth/context.php
-VITE_AUTH_LOGIN_URL=https://suite.midominio.com/login.php
-VITE_AUTH_LOGOUT_URL=https://suite.midominio.com/logout.php
-VITE_SUITE_URL=https://suite.midominio.com
+VITE_API_URL=/compras/api
+VITE_AUTH_CONTEXT_URL=/api/auth/context.php
+VITE_AUTH_LOGIN_URL=/login.php
+VITE_AUTH_LOGOUT_URL=/logout.php
+VITE_SUITE_URL=/
 ```
 
 `VITE_SUITE_URL` alimenta el enlace **Suite** del header y la ruta `/suite`, que
@@ -185,6 +198,10 @@ La interfaz también respeta los permisos:
 `network_mode: host` y `VITE_PROXY_TARGET=http://127.0.0.1:8001` para alcanzar el
 backend FastAPI que corre en el host (escuchando en loopback).
 
+El acceso integrado es `http://localhost:8000/compras/` a través del Nginx local.
+Vite sigue disponible en `http://localhost:5173/compras/` para depurar con HMR.
+El contenedor Nginx se levanta aparte con `deploy/nginx/local.conf`.
+
 Este compose es solo para desarrollo: monta el código y usa HMR. No genera una
 imagen de producción.
 
@@ -201,34 +218,36 @@ npm ci
 npm run build
 ```
 
-El resultado queda en `dist/`. Si defines `VITE_API_URL`, `VITE_AUTH_ENABLED` o
-las URLs de SSO, hazlo antes del build: Vite las incorpora en tiempo de
-compilación, no en tiempo de ejecución.
+El resultado queda en `dist/`. La SPA se sirve bajo `/compras/`; copia el build a
+`/var/www/veritrade/compras`. Si defines `VITE_API_URL`, `VITE_AUTH_ENABLED` o las
+URLs de SSO, hazlo antes del build: Vite las incorpora en tiempo de compilación,
+no en tiempo de ejecución.
 
 ### 2. Servir con Nginx
 
-Copia `dist/` al VPS (por ejemplo, `/var/www/veritrade-frontend`) y usa una
-configuración como esta:
+Copia `dist/` al VPS en `/var/www/veritrade/compras`. Hay un ejemplo listo en
+`deploy/nginx/production.conf.example`; ajústalo con tu dominio, PHP-FPM y ruta de
+la API. La configuración equivalente es esta, junto con tu bloque PHP-FPM para la
+suite:
 
 ```nginx
 server {
     listen 443 ssl http2;
-    server_name tu-dominio.com;
+    server_name suite.tu-dominio.com;
 
-    ssl_certificate     /etc/letsencrypt/live/tu-dominio.com/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/tu-dominio.com/privkey.pem;
+    ssl_certificate     /etc/letsencrypt/live/suite.tu-dominio.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/suite.tu-dominio.com/privkey.pem;
 
-    root  /var/www/veritrade-frontend;
-    index index.html;
+    root /var/www/veritrade/suite;
+    index index.php;
 
-    # Subidas de Excel/CSV y respuestas largas del agente.
     client_max_body_size 50m;
 
-    location / {
-        try_files $uri $uri/ /index.html;
+    location = /compras {
+        return 308 /compras/;
     }
 
-    location /api/ {
+    location /compras/api/ {
         proxy_pass http://veritrade_api:8000/;
         proxy_http_version 1.1;
         proxy_set_header Host $host;
@@ -237,12 +256,22 @@ server {
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_read_timeout 180s;
     }
+
+    location /compras/ {
+        alias /var/www/veritrade/compras/;
+        try_files $uri $uri/ /compras/index.html;
+    }
+
+    location / {
+        # Tu configuración PHP-FPM para la suite.
+        # /api/auth/context.php debe seguir llegando a PHP.
+    }
 }
 ```
 
-- `try_files ... /index.html` es necesario para las rutas de React Router.
-- El slash final de `proxy_pass` elimina `/api/` antes de llamar a FastAPI.
-- Si Nginx corre en el host, usa `http://127.0.0.1:8001/`.
+- `try_files ... /compras/index.html` es necesario para las rutas de React Router.
+- El slash final de `proxy_pass` elimina `/compras/api/` antes de FastAPI.
+- Si Nginx corre en el host, usa `http://127.0.0.1:8001/` para la API.
 - Si Nginx corre en Docker, únelo a la red `veritrade_net` y usa
   `http://veritrade_api:8000/`.
 - La configuración completa con redirección HTTP→HTTPS y TLS está en el README
@@ -250,8 +279,8 @@ server {
 
 ### 3. Elegir cómo resolver la API
 
-- **Mismo dominio con `/api` (recomendado):** no definas `VITE_API_URL`; el
-  cliente usa `/api` y Nginx lo reenvía al backend.
+- **Mismo dominio con `/compras/api` (recomendado):** define
+  `VITE_API_URL=/compras/api`; Nginx lo reenvía al backend.
 - **Dominio separado:** define `VITE_API_URL=https://api.tu-dominio.com` antes del
   build y agrega ese dominio a `CORS_ORIGINS` en el backend.
 
@@ -292,8 +321,8 @@ src/
 ├── lib/viewRoutes.ts     # filtros y pestañas en query params
 ├── services/api/         # cliente HTTP y endpoints separados por dominio
 ├── types/                # contratos del backend y tipos compartidos
-├── App.tsx               # rutas / y /compras
-└── main.tsx              # QueryClientProvider + BrowserRouter
+├── App.tsx               # rutas /importaciones, /compras y /suite
+└── main.tsx              # QueryClientProvider + BrowserRouter con basename
 ```
 
 Los imports internos usan el alias `@/`, configurado en `tsconfig.app.json` y

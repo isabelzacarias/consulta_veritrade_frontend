@@ -6,18 +6,19 @@ import { defineConfig, loadEnv } from 'vite'
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
 
-  // El frontend consume la API a través de /api. El proxy elimina ese prefijo
-  // porque las rutas del backend FastAPI no lo incluyen (p. ej. /reportes/kpis).
+  // La SPA se publica bajo /compras/ en el mismo origen de la suite.
+  // El proxy elimina /compras/api porque FastAPI no incluye ese prefijo.
   const target = env.VITE_PROXY_TARGET || 'http://127.0.0.1:8001'
   const proxy = {
-    '/api': {
+    '/compras/api': {
       target,
       changeOrigin: true,
-      rewrite: (path: string) => path.replace(/^\/api/, ''),
+      rewrite: (path: string) => path.replace(/^\/compras\/api/, ''),
     },
   }
 
   return {
+    base: '/compras/',
     plugins: [react(), tailwindcss()],
     resolve: {
       alias: {

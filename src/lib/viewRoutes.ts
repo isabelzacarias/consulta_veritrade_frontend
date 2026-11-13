@@ -164,7 +164,7 @@ export function buildImportacionesUrl(
   tab: ImportacionesTab = 'resumen',
 ): string {
   const query = importacionesSearchParams(filters, tab).toString()
-  return query ? `/?${query}` : '/'
+  return query ? `/importaciones?${query}` : '/importaciones'
 }
 
 export function buildComprasUrl(
