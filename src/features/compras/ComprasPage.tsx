@@ -147,10 +147,6 @@ export function ComprasPage() {
     setPage(1)
   }
 
-  const refresh = () => {
-    void queryClient.invalidateQueries({ queryKey: ['compras'] })
-  }
-
   const reloadAfterImport = () => {
     void queryClient.invalidateQueries({ queryKey: ['compras'] })
   }
@@ -170,11 +166,6 @@ export function ComprasPage() {
       <AppHeader
         title="Compras HORBIS"
         subtitle="Compras por artículo · HORBIS INNOTRADE"
-        isRefreshing={isRefreshing}
-        onRefresh={refresh}
-        onImport={canImport ? () => setImportOpen(true) : undefined}
-        importLabel="Importar compras"
-        updatedAt={lastUpdated}
       />
 
       <main className="mx-auto max-w-[1600px] space-y-4 px-4 py-6 sm:px-6">
@@ -184,11 +175,23 @@ export function ComprasPage() {
               Panel de compras
             </h1>
           </div>
-          {lastUpdated && (
-            <p className="text-[11px] text-slate-400">
-              Datos actualizados a las {lastUpdated}
-            </p>
-          )}
+          <div className="flex flex-wrap items-center gap-3">
+            {lastUpdated && (
+              <p className="text-[11px] text-slate-400">
+                Datos actualizados a las {lastUpdated}
+              </p>
+            )}
+            {canImport && (
+              <button
+                type="button"
+                onClick={() => setImportOpen(true)}
+                className="inline-flex items-center gap-2 rounded-lg bg-brand-700 px-3.5 py-2 text-xs font-semibold text-white shadow-sm shadow-brand-900/20 transition hover:bg-brand-800"
+              >
+                <Upload className="size-3.5" />
+                Importar compras
+              </button>
+            )}
+          </div>
         </div>
 
         {showEmptyDatabase && (
