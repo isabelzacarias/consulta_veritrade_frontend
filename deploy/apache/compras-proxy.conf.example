@@ -1,0 +1,7 @@
+# Ejemplo de proxy en el vhost de dev.horbismex.com o app.horbismex.com.
+# Respaldar el vhost y ejecutar apachectl configtest antes de recargar.
+# No modificar Apache sin revisar /root/horbis-proteger-apache-dev.sh y horbis-ops.
+
+ProxyPreserveHost On
+ProxyPass /compras/ http://127.0.0.1:8080/compras/
+ProxyPassReverse /compras/ http://127.0.0.1:8080/compras/
