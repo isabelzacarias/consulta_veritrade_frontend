@@ -1,5 +1,6 @@
 import { useState, type CSSProperties } from 'react'
 import { Outlet } from 'react-router-dom'
+import { EMBEDDED } from '@/lib/suite'
 import { AppSidebar } from './AppSidebar'
 
 const STORAGE_KEY = 'comprasSidebarCompact'
@@ -25,6 +26,8 @@ export function AppLayout() {
       return next
     })
   }
+
+  if (EMBEDDED) return <Outlet />
 
   return (
     <div className="min-h-screen">

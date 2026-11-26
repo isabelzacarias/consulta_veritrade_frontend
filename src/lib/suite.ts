@@ -16,3 +16,11 @@ const candidate =
 
 export const SUITE_URL =
   candidate === '/' ? '/' : candidate.replace(/\/+$/, '')
+
+export const EMBEDDED = (() => {
+  try {
+    return window.self !== window.top
+  } catch {
+    return false
+  }
+})()

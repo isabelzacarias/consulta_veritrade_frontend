@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Menu, X } from 'lucide-react'
 import logoHeader from '@/assets/logo-header-hr.png'
+import { EMBEDDED } from '@/lib/suite'
 import { useAuth } from '@/features/auth/AuthContext'
 
 interface AppHeaderProps {
@@ -12,6 +13,9 @@ interface AppHeaderProps {
 export function AppHeader({ title, subtitle }: AppHeaderProps) {
   const auth = useAuth()
   const [menuOpen, setMenuOpen] = useState(false)
+
+  if (EMBEDDED) return null
+
   const home = '/'
   const company = auth.context?.empresa?.nombre
   const roles = auth.context?.roles ?? []

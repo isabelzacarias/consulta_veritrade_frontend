@@ -7,10 +7,16 @@ import {
   ShieldAlert,
 } from 'lucide-react'
 import { useAuth } from './AuthContext'
+import { EMBEDDED } from '@/lib/suite'
 
 interface AuthGateProps {
   children: ReactNode
   permission?: string
+}
+
+function topLocation(url: string) {
+  if (EMBEDDED && window.top) window.top.location.replace(url)
+  else window.location.replace(url)
 }
 
 function AuthShell({ children }: { children: ReactNode }) {
@@ -81,6 +87,7 @@ function AccessDenied({
         {logoutUrl && (
           <a
             href={logoutUrl}
+            target={EMBEDDED ? '_top' : undefined}
             className="inline-flex items-center gap-2 rounded-lg bg-brand-700 px-3.5 py-2 text-xs font-medium text-white transition hover:bg-brand-800"
           >
             <LogIn className="size-3.5" />
@@ -122,6 +129,7 @@ function ErrorScreen({
         {logoutUrl && (
           <a
             href={logoutUrl}
+            target={EMBEDDED ? '_top' : undefined}
             className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3.5 py-2 text-xs font-medium text-slate-600 transition hover:bg-slate-50"
           >
             <LogIn className="size-3.5" />
@@ -142,7 +150,7 @@ export function AuthGate({
 
   useEffect(() => {
     if (auth.status === 'unauthenticated' && auth.loginUrl) {
-      window.location.replace(auth.loginUrl)
+      topLocation(auth.loginUrl)
     }
   }, [auth.loginUrl, auth.status])
 
@@ -161,6 +169,7 @@ export function AuthGate({
           </p>
           <a
             href={auth.loginUrl}
+            target={EMBEDDED ? '_top' : undefined}
             className="mt-6 inline-flex items-center gap-2 rounded-lg bg-brand-700 px-3.5 py-2 text-xs font-medium text-white transition hover:bg-brand-800"
           >
             <LogIn className="size-3.5" />

@@ -1,10 +1,11 @@
 import { useEffect } from 'react'
 import { ExternalLink, Loader2 } from 'lucide-react'
-import { SUITE_URL } from '@/lib/suite'
+import { EMBEDDED, SUITE_URL } from '@/lib/suite'
 
 export function SuiteRedirectPage() {
   useEffect(() => {
-    window.location.replace(SUITE_URL)
+    if (EMBEDDED && window.top) window.top.location.replace(SUITE_URL)
+    else window.location.replace(SUITE_URL)
   }, [])
 
   return (
@@ -19,6 +20,7 @@ export function SuiteRedirectPage() {
         </p>
         <a
           href={SUITE_URL}
+          target={EMBEDDED ? '_top' : undefined}
           className="mt-6 inline-flex items-center gap-2 rounded-lg bg-brand-700 px-3.5 py-2 text-xs font-medium text-white transition hover:bg-brand-800"
         >
           <ExternalLink className="size-3.5" />
