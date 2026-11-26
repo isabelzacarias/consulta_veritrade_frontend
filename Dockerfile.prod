@@ -1,0 +1,38 @@
+FROM node:20-alpine AS build
+
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm ci
+
+COPY . .
+
+ARG VITE_API_URL=/compras/api
+ARG VITE_AUTH_ENABLED=true
+ARG VITE_AUTH_APP=compras
+ARG VITE_AUTH_CONTEXT_URL=/api/auth/context.php
+ARG VITE_AUTH_LOGIN_URL=/login.php
+ARG VITE_AUTH_LOGOUT_URL=/logout.php
+ARG VITE_SUITE_URL=/
+
+RUN printf '%s\n' \
+    "VITE_API_URL=${VITE_API_URL}" \
+    "VITE_AUTH_ENABLED=${VITE_AUTH_ENABLED}" \
+    "VITE_AUTH_APP=${VITE_AUTH_APP}" \
+    "VITE_AUTH_CONTEXT_URL=${VITE_AUTH_CONTEXT_URL}" \
+    "VITE_AUTH_LOGIN_URL=${VITE_AUTH_LOGIN_URL}" \
+    "VITE_AUTH_LOGOUT_URL=${VITE_AUTH_LOGOUT_URL}" \
+    "VITE_SUITE_URL=${VITE_SUITE_URL}" > .env.production \
+    && npm run build
+
+FROM nginx:1.27-alpine
+
+COPY deploy/nginx/vps.conf /etc/nginx/conf.d/default.conf
+COPY --from=build /app/dist /usr/share/nginx/html/compras
+
+EXPOSE 80
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+    CMD wget -q -O /dev/null http://127.0.0.1/compras/ || exit 1
+
+STOPSIGNAL SIGQUIT

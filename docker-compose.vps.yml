@@ -1,0 +1,27 @@
+name: veritrade_vps_frontend
+
+services:
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
+      args:
+        VITE_API_URL: ${VITE_API_URL:-/compras/api}
+        VITE_AUTH_ENABLED: ${VITE_AUTH_ENABLED:-false}
+        VITE_AUTH_APP: ${VITE_AUTH_APP:-compras}
+        VITE_AUTH_CONTEXT_URL: ${VITE_AUTH_CONTEXT_URL:-/api/auth/context.php}
+        VITE_AUTH_LOGIN_URL: ${VITE_AUTH_LOGIN_URL:-/login.php}
+        VITE_AUTH_LOGOUT_URL: ${VITE_AUTH_LOGOUT_URL:-/logout.php}
+        VITE_SUITE_URL: ${VITE_SUITE_URL:-/}
+    image: veritrade-frontend:vps
+    container_name: veritrade_frontend_vps
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${FRONTEND_PORT:-8080}:80"
+    networks:
+      - veritrade_vps_net
+
+networks:
+  veritrade_vps_net:
+    external: true
+    name: ${VERITRADE_NETWORK:-veritrade_vps_net}
