@@ -7,7 +7,6 @@ import { useAuth } from '@/features/auth/AuthContext'
 import { SuiteRedirectPage } from '@/features/suite/SuiteRedirectPage'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { DashboardPage } from '@/features/dashboard/DashboardPage'
-import { EMBEDDED } from '@/lib/suite'
 
 function App() {
   const auth = useAuth()
@@ -34,7 +33,7 @@ function App() {
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
 
-      {!EMBEDDED && <ChatWidget />}
+      <ChatWidget />
     </AuthGate>
   )
 }
