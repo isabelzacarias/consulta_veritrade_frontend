@@ -104,8 +104,8 @@ export function parseImportacionesRoute(searchParams: URLSearchParams): {
     aduana: readAll(searchParams, 'aduana'),
     pais_origen: readAll(searchParams, 'pais_origen'),
     partida: readAll(searchParams, 'partida'),
-    importador: read(searchParams, 'importador'),
-    exportador: read(searchParams, 'exportador'),
+    importador: readAll(searchParams, 'importador'),
+    exportador: readAll(searchParams, 'exportador'),
   }
   for (const key of IMPORTACIONES_FILTER_KEYS) {
     if (!filters[key]) delete filters[key]
@@ -187,8 +187,8 @@ export function buildViewUrl(
       aduana: asArray(filtros.aduana),
       pais_origen: asArray(filtros.pais_origen),
       partida: asArray(filtros.partida),
-      importador: asString(filtros.importador),
-      exportador: asString(filtros.exportador),
+      importador: asArray(filtros.importador),
+      exportador: asArray(filtros.exportador),
     }
     const candidate = tab ?? undefined
     const nextTab = isImportacionesTab(candidate) ? candidate : 'resumen'

@@ -10,8 +10,8 @@ export interface Filters {
   aduana?: string[]
   pais_origen?: string[]
   partida?: string[]
-  importador?: string
-  exportador?: string
+  importador?: string[]
+  exportador?: string[]
 }
 
 export type OrderBy = 'valor_usd' | 'volumen_kg' | 'mes'

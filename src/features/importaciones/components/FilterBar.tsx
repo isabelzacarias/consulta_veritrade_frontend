@@ -15,6 +15,8 @@ interface FilterBarProps {
   onRemoveFilter: (field: string, value?: string) => void
   aduanas: string[]
   paises: string[]
+  importadores: string[]
+  exportadores: string[]
   partidas: PartidaMeta[]
   activeCount: number
   loading?: boolean
@@ -30,20 +32,18 @@ export function FilterBar({
   onRemoveFilter,
   aduanas,
   paises,
+  importadores,
+  exportadores,
   partidas,
   activeCount,
   loading = false,
   dirty = false,
 }: FilterBarProps) {
   const setMulti = (
-    key: 'aduana' | 'pais_origen' | 'partida',
+    key: 'aduana' | 'pais_origen' | 'partida' | 'importador' | 'exportador',
     values: string[],
   ) => {
     onChange({ ...draft, [key]: values.length > 0 ? values : undefined })
-  }
-
-  const setText = (key: 'importador' | 'exportador', value: string) => {
-    onChange({ ...draft, [key]: value || undefined })
   }
 
   const fields: UnifiedFilterField[] = [
@@ -96,18 +96,24 @@ export function FilterBar({
     {
       key: 'importador',
       label: 'Importador',
-      type: 'text',
-      value: draft.importador ?? '',
-      placeholder: 'Buscar por nombre…',
-      onChange: (value) => setText('importador', value as string),
+      type: 'multiselect',
+      value: draft.importador ?? [],
+      onChange: (value) => setMulti('importador', value as string[]),
+      options: importadores.map((importador) => ({
+        value: importador,
+        label: importador,
+      })),
     },
     {
       key: 'exportador',
       label: 'Exportador / proveedor',
-      type: 'text',
-      value: draft.exportador ?? '',
-      placeholder: 'Buscar por nombre…',
-      onChange: (value) => setText('exportador', value as string),
+      type: 'multiselect',
+      value: draft.exportador ?? [],
+      onChange: (value) => setMulti('exportador', value as string[]),
+      options: exportadores.map((exportador) => ({
+        value: exportador,
+        label: exportador,
+      })),
     },
   ]
 
@@ -160,20 +166,22 @@ export function FilterBar({
       optionValue: partida,
     })
   }
-  if (filters.importador) {
+  for (const importador of filters.importador ?? []) {
     chips.push({
-      id: 'importador',
+      id: `importador-${importador}`,
       field: 'importador',
       label: 'Importador',
-      value: filters.importador,
+      value: importador,
+      optionValue: importador,
     })
   }
-  if (filters.exportador) {
+  for (const exportador of filters.exportador ?? []) {
     chips.push({
-      id: 'exportador',
+      id: `exportador-${exportador}`,
       field: 'exportador',
       label: 'Exportador',
-      value: filters.exportador,
+      value: exportador,
+      optionValue: exportador,
     })
   }
 

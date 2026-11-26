@@ -95,6 +95,18 @@ export function ImportacionesPage() {
     staleTime: 5 * 60_000,
   })
 
+  const importadores = useQuery({
+    queryKey: ['meta', 'importadores'],
+    queryFn: ({ signal }) => api.importadoresMeta(signal),
+    staleTime: 5 * 60_000,
+  })
+
+  const exportadores = useQuery({
+    queryKey: ['meta', 'exportadores'],
+    queryFn: ({ signal }) => api.exportadoresMeta(signal),
+    staleTime: 5 * 60_000,
+  })
+
   const partidas = useQuery({
     queryKey: ['meta', 'partidas'],
     queryFn: ({ signal }) => api.partidas(signal),
@@ -219,6 +231,8 @@ export function ImportacionesPage() {
           onRemoveFilter={removeFilter}
           aduanas={aduanas.data ?? []}
           paises={paises.data ?? []}
+          importadores={importadores.data ?? []}
+          exportadores={exportadores.data ?? []}
           partidas={partidas.data ?? []}
           activeCount={activeCount}
           loading={isRefreshing}

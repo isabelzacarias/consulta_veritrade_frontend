@@ -52,6 +52,12 @@ export const importacionesApi = {
   paises: (signal?: AbortSignal) =>
     request<string[]>('/meta/paises', undefined, { signal }),
 
+  importadoresMeta: (signal?: AbortSignal) =>
+    request<string[]>('/meta/importadores', undefined, { signal }),
+
+  exportadoresMeta: (signal?: AbortSignal) =>
+    request<string[]>('/meta/exportadores', undefined, { signal }),
+
   partidas: (signal?: AbortSignal) =>
     request<PartidaMeta[]>('/meta/partidas', undefined, { signal }),
 
