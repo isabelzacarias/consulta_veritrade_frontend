@@ -27,7 +27,7 @@ function App() {
               )
             }
           />
-          <Route path="/compras" element={<ComprasPage />} />
+          <Route path="/miscompras" element={<ComprasPage />} />
         </Route>
         <Route path="/suite" element={<SuiteRedirectPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />

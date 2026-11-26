@@ -1,17 +1,13 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ExternalLink, Menu, X } from 'lucide-react'
+import { Menu, X } from 'lucide-react'
 import logoHeader from '@/assets/logo-header-hr.png'
-import { SUITE_URL } from '@/lib/suite'
 import { useAuth } from '@/features/auth/AuthContext'
 
 interface AppHeaderProps {
   title: string
   subtitle: string
 }
-
-const actionClass =
-  'inline-flex h-9 w-full items-center justify-center gap-2 rounded-lg border border-white/20 bg-white/10 px-3 text-xs font-semibold text-white transition hover:bg-white/15 md:w-auto'
 
 export function AppHeader({ title, subtitle }: AppHeaderProps) {
   const auth = useAuth()
@@ -84,10 +80,6 @@ export function AppHeader({ title, subtitle }: AppHeaderProps) {
             </span>
           )}
 
-          <a href={SUITE_URL} onClick={closeMenu} className={actionClass}>
-            <ExternalLink className="size-5" />
-            +IA
-          </a>
 
         </nav>
       </div>

@@ -1,5 +1,6 @@
 import { NavLink } from 'react-router-dom'
 import {
+  ArrowLeft,
   ChevronLeft,
   LayoutDashboard,
   Ship,
@@ -7,6 +8,7 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import { useAuth } from '@/features/auth/AuthContext'
+import { SUITE_URL } from '@/lib/suite'
 
 interface AppSidebarProps {
   collapsed: boolean
@@ -26,14 +28,27 @@ const itemBase =
 export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
   const auth = useAuth()
   const canViewImportaciones = auth.hasPermission('compras.ver')
+  const comprasUrl =
+    SUITE_URL === '/'
+      ? '/modules/compras/index.php'
+      : `${SUITE_URL}/modules/compras/index.php`
 
   const items: NavItem[] = [
     { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true },
     ...(canViewImportaciones
       ? [{ to: '/importaciones', label: 'Importaciones', icon: Ship }]
       : []),
-    { to: '/compras', label: 'Compras', icon: ShoppingCart },
+    { to: '/miscompras', label: 'Mis Compras', icon: ShoppingCart },
   ]
+
+  const classNameFor = (isActive: boolean) =>
+    `${itemBase} ${
+      collapsed ? 'justify-center px-0' : 'px-3'
+    } ${
+      isActive
+        ? 'bg-[#45205f] text-white'
+        : 'text-[#bdb3c8] hover:bg-white/10 hover:text-white'
+    }`
 
   return (
     <aside
@@ -89,15 +104,7 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
               end={item.end}
               title={item.label}
               aria-label={item.label}
-              className={({ isActive }) =>
-                `${itemBase} ${
-                  collapsed ? 'justify-center px-0' : 'px-3'
-                } ${
-                  isActive
-                    ? 'bg-[#45205f] text-white'
-                    : 'text-[#bdb3c8] hover:bg-white/10 hover:text-white'
-                }`
-              }
+              className={({ isActive }) => classNameFor(isActive)}
             >
               <Icon className="size-[21px] shrink-0" strokeWidth={1.8} />
               {!collapsed && <span className="truncate">{item.label}</span>}
@@ -105,6 +112,18 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
           )
         })}
       </nav>
+
+      <div className="mt-auto p-2.5">
+        <a
+          href={comprasUrl}
+          title="Regresar"
+          aria-label="Regresar"
+          className={classNameFor(false)}
+        >
+          <ArrowLeft className="size-[21px] shrink-0" strokeWidth={1.8} />
+          {!collapsed && <span className="truncate">Regresar</span>}
+        </a>
+      </div>
     </aside>
   )
 }
